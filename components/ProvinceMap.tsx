@@ -6,14 +6,14 @@ import { Minus, Plus, RotateCcw } from "lucide-react";
 import { type City, getCitiesByProvince, cityFallbackSprite } from "@/data/cities";
 import { type Memory, getLatestMemory, moodConfig, sortMemoriesByTime } from "@/data/memories";
 import { type LocalMemoryStore, getLitCityIds, memoryStoreUpdatedEvent } from "@/data/progress";
-import { writeAdminMode } from "@/data/adminMode";
 import type { Province } from "@/data/provinces";
 import { useAdminMode } from "@/hooks/useAdminMode";
 import { makeProjectionForProvince, makePath, chinaFeatures, provinceIdOf } from "@/lib/geo";
 import { 
   type MapCamera, type DragState, type CityAssetStore, type CardAnchor,
   colors, spring, memoryCardWidth, memoryCardGap, memoryCardMaxHeight, cityListPanelWidth,
-  revokeObjectUrl, clampZoom, stableCoordinate
+  revokeObjectUrl, clampZoom, stableCoordinate,
+  memoryApiCall, dispatchMemoryUpdate
 } from "./province/Shared";
 import CityPanel from "./province/CityPanel";
 import { MemoryImage } from "./province/MemoryImage";
@@ -333,98 +333,36 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
       })()
     : null;
 
+  const updateLocalMemories = (memories: LocalMemoryStore) => {
+    localMemoriesRef.current = memories;
+    setLocalMemories(memories);
+  };
+
   const handleSaveMemory = async (cityId: string, memory: Memory) => {
     if (!isAdmin) throw new Error("Admin mode required");
-
-    const response = await fetch("/api/memories", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ memory }),
-    });
-
-    if (response.status === 401 || response.status === 403) {
-      writeAdminMode(false);
-      throw new Error("Admin session expired");
-    }
-    if (!response.ok) throw new Error("Failed to save memory");
-
-    const data = (await response.json()) as { memory: Memory; memories: LocalMemoryStore };
-
-    setLocalMemories(() => {
-      localMemoriesRef.current = data.memories;
-
-      return data.memories;
-    });
-    window.dispatchEvent(new CustomEvent(memoryStoreUpdatedEvent, { detail: data.memories }));
+    const data = await memoryApiCall("POST", { memory });
+    updateLocalMemories(data.memories);
+    dispatchMemoryUpdate(data.memories);
   };
 
   const handleSetMemoryCover = async (cityId: string, memoryId: string, coverImage: string) => {
     if (!isAdmin) throw new Error("Admin mode required");
-
-    const response = await fetch("/api/memories", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cityId, memoryId, coverImage }),
-    });
-
-    if (response.status === 401 || response.status === 403) {
-      writeAdminMode(false);
-      throw new Error("Admin session expired");
-    }
-    if (!response.ok) throw new Error("Failed to update memory cover");
-
-    const data = (await response.json()) as { memory: Memory; memories: LocalMemoryStore };
-
-    setLocalMemories(() => {
-      localMemoriesRef.current = data.memories;
-
-      return data.memories;
-    });
-    window.dispatchEvent(new CustomEvent(memoryStoreUpdatedEvent, { detail: data.memories }));
+    const data = await memoryApiCall("PATCH", { cityId, memoryId, coverImage });
+    updateLocalMemories(data.memories);
+    dispatchMemoryUpdate(data.memories);
   };
 
   const handleUpdateMemory = async (cityId: string, memoryId: string, memory: Memory) => {
     if (!isAdmin) throw new Error("Admin mode required");
-
-    const response = await fetch("/api/memories", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cityId, memoryId, memory }),
-    });
-
-    if (response.status === 401 || response.status === 403) {
-      writeAdminMode(false);
-      throw new Error("Admin session expired");
-    }
-    if (!response.ok) throw new Error("Failed to update memory");
-
-    const data = (await response.json()) as { memory: Memory; memories: LocalMemoryStore };
-
-    setLocalMemories(() => {
-      localMemoriesRef.current = data.memories;
-
-      return data.memories;
-    });
-    window.dispatchEvent(new CustomEvent(memoryStoreUpdatedEvent, { detail: data.memories }));
+    const data = await memoryApiCall("PATCH", { cityId, memoryId, memory });
+    updateLocalMemories(data.memories);
+    dispatchMemoryUpdate(data.memories);
   };
 
   const handleDeleteMemory = async (cityId: string, memoryId: string) => {
     if (!isAdmin) throw new Error("Admin mode required");
-
-    const response = await fetch("/api/memories", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ cityId, memoryId }),
-    });
-
-    if (response.status === 401 || response.status === 403) {
-      writeAdminMode(false);
-      throw new Error("Admin session expired");
-    }
-    if (!response.ok) throw new Error("Failed to delete memory");
-
-    const data = (await response.json()) as { memories: LocalMemoryStore };
-    setLocalMemories(data.memories);
+    const data = await memoryApiCall("DELETE", { cityId, memoryId });
+    updateLocalMemories(data.memories);
     window.dispatchEvent(new CustomEvent(memoryStoreUpdatedEvent));
   };
 

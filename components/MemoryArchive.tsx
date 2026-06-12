@@ -22,6 +22,7 @@ import {
   type LocalMemoryStore,
 } from "@/data/progress";
 import { LocalPrivacyImage, LocalPrivacyImg } from "@/components/LocalPrivacyImage";
+import { Lightbox, type LightboxPhoto } from "@/components/shared/Lightbox";
 
 type ArchiveView = "city" | "timeline";
 type MemoryItem = {
@@ -58,7 +59,7 @@ function MemoryImage({ memory }: Readonly<{ memory: Memory }>) {
   );
 }
 
-function MemoryCard({ item, compact = false }: Readonly<{ item: MemoryItem; compact?: boolean }>) {
+function MemoryCard({ item, compact = false, onPhotoClick }: Readonly<{ item: MemoryItem; compact?: boolean; onPhotoClick?: (photo: string) => void }>) {
   const { memory, city } = item;
 
   return (
@@ -67,7 +68,17 @@ function MemoryCard({ item, compact = false }: Readonly<{ item: MemoryItem; comp
       href={city ? `/province/${city.provinceId}?city=${memory.cityId}` : "/"}
     >
       <article className={compact ? "grid grid-cols-[92px_1fr] gap-3" : "grid grid-cols-[112px_1fr] gap-4"}>
-        <div className="relative aspect-square overflow-hidden rounded-[6px] border border-[#D8DDD8] bg-[#D6E8F0]">
+        <div
+          className="relative aspect-square overflow-hidden rounded-[6px] border border-[#D8DDD8] bg-[#D6E8F0] cursor-pointer"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onPhotoClick?.(memory.image);
+          }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onPhotoClick?.(memory.image); } }}
+        >
           <MemoryImage memory={memory} />
         </div>
         <div className="min-w-0 py-1">
@@ -98,6 +109,8 @@ export default function MemoryArchive() {
   const [view, setView] = useState<ArchiveView>("city");
   const [moodFilter, setMoodFilter] = useState<MemoryMood | "all">("all");
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
+  const [lightboxPhotos, setLightboxPhotos] = useState<LightboxPhoto[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,6 +182,15 @@ export default function MemoryArchive() {
   }, [memoryItems]);
 
   const cityCount = cityGroups.length;
+
+  const handlePhotoClick = (photo: string, allPhotos: string[], cityLabel: string) => {
+    setLightboxPhotos(allPhotos.map((src, i) => ({
+      src,
+      alt: `${cityLabel} 照片 ${i + 1}`,
+      caption: cityLabel,
+    })));
+    setLightboxIndex(allPhotos.findIndex((p) => p === photo));
+  };
 
   const toggleCity = (cityId: string) => {
     setExpandedCities((current) => {
@@ -294,7 +316,12 @@ export default function MemoryArchive() {
                     </div>
                     <div className="grid gap-4 xl:grid-cols-3">
                       {visibleMemories.map((item) => (
-                        <MemoryCard key={item.memory.id} item={item} compact />
+                        <MemoryCard
+                          key={item.memory.id}
+                          item={item}
+                          compact
+                          onPhotoClick={(photo) => handlePhotoClick(photo, [item.memory.image, ...(item.memory.photos ?? [])], item.memory.city)}
+                        />
                       ))}
                     </div>
                   </section>
@@ -312,13 +339,24 @@ export default function MemoryArchive() {
                   <h2 className="mb-4 text-2xl font-semibold text-[#5A6670]">{group.label}</h2>
                   <div className="grid gap-4 xl:grid-cols-2">
                     {group.memories.map((item) => (
-                      <MemoryCard key={item.memory.id} item={item} />
+                      <MemoryCard
+                        key={item.memory.id}
+                        item={item}
+                        onPhotoClick={(photo) => handlePhotoClick(photo, [item.memory.image, ...(item.memory.photos ?? [])], item.memory.city)}
+                      />
                     ))}
                   </div>
                 </section>
               ))}
             </div>
           )}
+      {lightboxPhotos.length > 0 && (
+        <Lightbox
+          photos={lightboxPhotos}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxPhotos([])}
+        />
+      )}
     </MemoryPageShell>
   );
 }

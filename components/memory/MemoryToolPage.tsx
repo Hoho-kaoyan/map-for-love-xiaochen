@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Pencil, Plus, Trash2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Pencil, Plus, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cities } from '@/data/cities';
 import { MemoryPageShell } from '@/components/MemoryNav';
 import { spring } from '@/components/province/Shared';
 import { useAdminMode } from '@/hooks/useAdminMode';
+import { CitySearchSelect } from '@/components/shared/CitySearchSelect';
 import { type ToolConfig, type StoredItem, readItems, writeItems, daysUntil } from './Shared';
 
 export default function MemoryToolPage({ config }: Readonly<{ config: ToolConfig }>) {
@@ -18,28 +19,9 @@ export default function MemoryToolPage({ config }: Readonly<{ config: ToolConfig
   const [note, setNote] = useState("");
   const [cityId, setCityId] = useState("");
   const [editingId, setEditingId] = useState("");
-  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [citySearch, setCitySearch] = useState("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 9;
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsCityDropdownOpen(false);
-        if (cityId) {
-          const matchedCity = cities.find((c) => c.id === cityId);
-          if (matchedCity) setCitySearch(matchedCity.name);
-        } else {
-          setCitySearch("");
-        }
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [cityId]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -49,7 +31,6 @@ export default function MemoryToolPage({ config }: Readonly<{ config: ToolConfig
     return () => window.clearTimeout(timer);
   }, [config.storageKey]);
 
-  const cityOptions = useMemo(() => cities.slice().sort((a, b) => a.name.localeCompare(b.name, "zh-Hans-CN")), []);
   const canSave = title.trim().length > 0;
 
   const resetForm = () => {
@@ -58,7 +39,6 @@ export default function MemoryToolPage({ config }: Readonly<{ config: ToolConfig
     setNote("");
     setEditingId("");
     setCityId("");
-    setCitySearch("");
     setIsFormOpen(false);
   };
 
@@ -88,14 +68,7 @@ export default function MemoryToolPage({ config }: Readonly<{ config: ToolConfig
     setTitle(item.title);
     setDate(item.date ?? "");
     setNote(item.note);
-    if (item.cityId) {
-      setCityId(item.cityId);
-      const matchedCity = cities.find((c) => c.id === item.cityId);
-      if (matchedCity) setCitySearch(matchedCity.name);
-    } else {
-      setCityId("");
-      setCitySearch("");
-    }
+    setCityId(item.cityId ?? "");
     setIsFormOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -178,53 +151,13 @@ export default function MemoryToolPage({ config }: Readonly<{ config: ToolConfig
                 </div>
 
                 {config.kind === "favorite" && (
-                  <div className="relative" ref={dropdownRef}>
+                  <div>
                     <label className="mb-1.5 block text-sm font-medium text-[#5A6670]/80">所属城市</label>
-                    <div
-                      className={`flex w-full items-center justify-between rounded-[8px] border ${isCityDropdownOpen ? 'border-[#E8B8C2] bg-white' : 'border-[#D8DDD8] bg-[#FAFBF7]'} px-4 py-2.5 text-sm outline-none transition`}
-                    >
-                      <input
-                        className="w-full bg-transparent outline-none text-[#5A6670] placeholder-[#5A6670]/40"
-                        placeholder="搜索或选择城市..."
-                        value={citySearch}
-                        onChange={(e) => {
-                          setCitySearch(e.target.value);
-                          if (!isCityDropdownOpen) setIsCityDropdownOpen(true);
-                        }}
-                        onFocus={() => {
-                          if (isAdmin) setIsCityDropdownOpen(true);
-                        }}
-                        disabled={!isAdmin}
-                      />
-                      <ChevronDown 
-                        className={`h-4 w-4 shrink-0 text-[#5A6670]/40 transition-transform cursor-pointer ${isCityDropdownOpen ? 'rotate-180' : ''}`} 
-                        onClick={() => {
-                          if (isAdmin) setIsCityDropdownOpen(!isCityDropdownOpen);
-                        }}
-                      />
-                    </div>
-                    {isCityDropdownOpen && (
-                      <div className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-[8px] border border-[#D8DDD8] bg-white py-1.5 shadow-xl">
-                        {cityOptions.filter(c => c.name.includes(citySearch)).map((city) => (
-                          <div
-                            key={city.id}
-                            className={`cursor-pointer px-4 py-2 text-sm transition hover:bg-[#F5DCE0]/30 ${city.id === cityId ? 'bg-[#F5DCE0]/50 font-semibold text-[#E8B8C2]' : 'text-[#5A6670]'}`}
-                            onClick={() => {
-                              setCityId(city.id);
-                              setCitySearch(city.name);
-                              setIsCityDropdownOpen(false);
-                            }}
-                          >
-                            {city.name}
-                          </div>
-                        ))}
-                        {cityOptions.filter(c => c.name.includes(citySearch)).length === 0 && (
-                          <div className="px-4 py-4 text-center text-sm text-[#5A6670]/40">
-                            未找到相关城市
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    <CitySearchSelect
+                      value={cityId}
+                      onChange={setCityId}
+                      disabled={!isAdmin}
+                    />
                   </div>
                 )}
 

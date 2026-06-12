@@ -1,5 +1,6 @@
-import { type City } from "@/data/cities";
 import { type Memory } from "@/data/memories";
+import { type LocalMemoryStore, memoryStoreUpdatedEvent } from "@/data/progress";
+import { writeAdminMode } from "@/data/adminMode";
 
 export type BrowserTimeout = ReturnType<Window["setTimeout"]>;
 export type PhotoDraft = {
@@ -92,3 +93,28 @@ export const photosOfMemory = (memory?: Memory) => {
   if (!memory) return [];
   return memory.photos?.length ? memory.photos : [memory.image];
 };
+
+export type MemoryApiResponse = { memories: LocalMemoryStore };
+
+export async function memoryApiCall(
+  method: string,
+  body: Record<string, unknown>,
+): Promise<MemoryApiResponse> {
+  const response = await fetch("/api/memories", {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    writeAdminMode(false);
+    throw new Error("Admin session expired");
+  }
+  if (!response.ok) throw new Error("Failed");
+
+  return response.json();
+}
+
+export function dispatchMemoryUpdate(memories: LocalMemoryStore) {
+  window.dispatchEvent(new CustomEvent(memoryStoreUpdatedEvent, { detail: memories }));
+}

@@ -13,6 +13,7 @@ import {
   revokePhotoDrafts, photosOfMemory, normalizeMemoryDate 
 } from "./Shared";
 import { LocalPrivacyImg } from "@/components/LocalPrivacyImage";
+import { Lightbox, type LightboxPhoto } from "@/components/shared/Lightbox";
 
 export default function CityPanel({
   city,
@@ -71,6 +72,8 @@ export default function CityPanel({
   const [activeTab, setActiveTab] = useState<MemoryPanelTab>("memory");
   const [isReadingPhoto, setIsReadingPhoto] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [lightboxPhotos, setLightboxPhotos] = useState<LightboxPhoto[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const photoDraftsRef = useRef<PhotoDraft[]>([]);
   const photoReadTokenRef = useRef(0);
   const mountedRef = useRef(false);
@@ -91,6 +94,15 @@ export default function CityPanel({
   const showMemory = (!expanded || activeTab === "memory") && !formOpen;
   const showGallery = expanded && activeTab === "gallery" && !formOpen;
   const showHistory = (!expanded || activeTab === "history") && memories.length > 0 && !formOpen;
+
+  const openLightbox = (photos: string[], startIndex: number, cityLabel: string) => {
+    setLightboxPhotos(photos.map((src, i) => ({
+      src,
+      alt: `${cityLabel} 照片 ${i + 1}`,
+      caption: cityLabel,
+    })));
+    setLightboxIndex(startIndex);
+  };
 
   const resetForm = (revokePhoto: boolean) => {
     photoReadTokenRef.current += 1;
@@ -360,7 +372,13 @@ export default function CityPanel({
 
       {showMemory && (
         <>
-          <div className="relative mt-4 aspect-[4/3] overflow-hidden rounded-[6px] border border-[#D8DDD8] bg-[#D6E8F0]">
+          <div
+            className="relative mt-4 aspect-[4/3] overflow-hidden rounded-[6px] border border-[#D8DDD8] bg-[#D6E8F0] cursor-pointer transition hover:opacity-90"
+            onClick={() => openLightbox(memoryPhotos, 0, city.name)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter") openLightbox(memoryPhotos, 0, city.name); }}
+          >
             <MemoryImage
               src={memory?.image ?? landmarkImage}
               alt={`${city.name} memory`}
@@ -443,12 +461,15 @@ export default function CityPanel({
           {galleryPhotos.length > 0 ? (
             <div className="grid grid-cols-3 gap-2">
               {galleryPhotos.map((photo, index) => (
-                <span
+                <button
                   key={`${city.id}-gallery-photo-${index}`}
-                  className="relative aspect-square overflow-hidden rounded-[5px] border border-[#D8DDD8] bg-[#D6E8F0]"
+                  className="relative aspect-square overflow-hidden rounded-[5px] border border-[#D8DDD8] bg-[#D6E8F0] transition hover:opacity-90 cursor-pointer"
+                  type="button"
+                  onClick={() => openLightbox(galleryPhotos, index, city.name)}
+                  aria-label={`查看 ${city.name} 相册第 ${index + 1} 张照片`}
                 >
                   <MemoryImage src={photo} alt={`${city.name} gallery photo ${index + 1}`} fit="cover" />
-                </span>
+                </button>
               ))}
             </div>
           ) : (
@@ -714,6 +735,14 @@ export default function CityPanel({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {lightboxPhotos.length > 0 && (
+        <Lightbox
+          photos={lightboxPhotos}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxPhotos([])}
+        />
+      )}
     </motion.article>
   );
 }
