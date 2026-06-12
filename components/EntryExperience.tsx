@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
@@ -336,14 +335,7 @@ export default function EntryExperience() {
             </motion.div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-3">
-            <Link
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[8px] border border-[#DCCFC1] bg-white/52 px-4 text-sm font-semibold text-[#344451] transition hover:-translate-y-0.5 hover:bg-white"
-              href="/memories"
-            >
-              <Camera className="h-4 w-4 text-[#D86F82]" />
-              相册
-            </Link>
+          <div className="mt-4 flex items-center justify-end gap-3">
             <button
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[8px] bg-[#273846] px-4 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(39,56,70,0.18)] transition hover:-translate-y-0.5 hover:bg-[#D86F82]"
               type="button"

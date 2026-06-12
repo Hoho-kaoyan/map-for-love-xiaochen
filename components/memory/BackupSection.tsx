@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import { type CityAssetStore, auxiliaryStorageKeys, readJsonArray } from './Shared';
 import { memoryStoreUpdatedEvent, type LocalMemoryStore } from '@/data/progress';
@@ -157,6 +156,11 @@ export function BackupSection({
 
   return (
     <>
+      {!isAdmin && (
+        <div className="md:col-span-2 rounded-[8px] border border-dashed border-[#E8B8C2] bg-[#F5DCE0]/20 p-4 text-center">
+          <p className="text-sm font-semibold text-[#E8B8C2]">请先在上方开启管理员模式，才能使用导入导出功能</p>
+        </div>
+      )}
       <div className="rounded-[8px] border border-[#D8DDD8]/78 bg-[#FAFBF7]/76 p-5 shadow-[0_12px_28px_rgba(90,102,112,0.06)]">
         <p className="text-sm font-semibold text-[#5A6670]">完整备份</p>
         <p className="mt-2 text-sm leading-6 text-[#5A6670]/62">

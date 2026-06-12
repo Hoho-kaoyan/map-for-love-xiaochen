@@ -1,4 +1,6 @@
 import { geoArea, geoMercator, geoPath, type GeoProjection } from "d3-geo";
+
+export type { GeoProjection } from "d3-geo";
 import rawChina from "@/data/china-geo.json";
 import { provinces } from "@/data/provinces";
 

@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 
 const githubUrl = "https://github.com/zkeyoned/map-of-us-template";
-const bilibiliUrl = "https://b23.tv/5YY2Xx9";
-const douyinUrl = "https://v.douyin.com/Pc3UKc03Wac/";
+const devUrl = "https://github.com/WyankinzZ/map-for-everyone";
+const douyinUrl = "https://www.douyin.com/user/MS4wLjABAAAAMWgaMMPGnFwsJmpKo1ha0HPQ6-ul-NEWzzMvQ9NIPYQ";
 
 export type MemoryNavKey = "map" | "memories" | "favorites" | "anniversaries" | "capsule" | "landmarks" | "loginPhotos" | "trips" | "weather" | "settings";
 
@@ -145,10 +145,26 @@ export function MemorySidebar({ active }: Readonly<{ active: MemoryNavKey }>) {
                 </div>
 
                 <div className="border-t border-[#D8DDD8]/54 pt-4">
+                  <p className="text-xs font-semibold text-[#5A6670]/60">二次开发</p>
+                  <a
+                    className="mt-2 flex items-center justify-center gap-1.5 rounded-[7px] border border-[#D6E8F0] bg-[#D6E8F0]/40 px-3 py-2 text-xs font-semibold text-[#A8C8DC] transition hover:bg-[#D6E8F0]/70"
+                    href={devUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Star className="h-3.5 w-3.5" />
+                    去 GitHub 了解更多
+                  </a>
+                  <p className="mt-2 select-text text-center text-[11px] text-[#5A6670]/40">
+                    github.com/WyankinzZ/map-for-everyone
+                  </p>
+                </div>
+
+                <div className="border-t border-[#D8DDD8]/54 pt-4">
                   <p className="mb-2 text-xs font-semibold text-[#5A6670]/60">作者联系方式</p>
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-[#5A6670]/50">微信</span>
-                    <span className="select-text font-medium text-[#5A6670]/72">Zz00726yd</span>
+                    <span className="select-text font-medium text-[#5A6670]/72">fkqsj9999</span>
                   </div>
                   <div className="mt-1 flex items-center justify-between text-xs">
                     <span className="text-[#5A6670]/50">抖音</span>
@@ -158,27 +174,8 @@ export function MemorySidebar({ active }: Readonly<{ active: MemoryNavKey }>) {
                       target="_blank"
                       rel="noreferrer"
                     >
-                      Zz00726yd ↗
+                      Www_531 ↗
                     </a>
-                  </div>
-                </div>
-
-                <div className="border-t border-[#D8DDD8]/54 pt-4">
-                  <p className="mb-2 text-xs font-semibold text-[#5A6670]/60">情侣 Vlog</p>
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-[#5A6670]/50">B 站</span>
-                    <a
-                      className="font-medium text-[#E8B8C2] transition hover:underline"
-                      href={bilibiliUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      HuTieZhu_ ↗
-                    </a>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between text-xs">
-                    <span className="text-[#5A6670]/50">UID</span>
-                    <span className="select-text font-medium text-[#5A6670]/72">1604079591</span>
                   </div>
                 </div>
               </div>

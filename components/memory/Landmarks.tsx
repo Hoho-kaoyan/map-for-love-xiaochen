@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { MemoryPageShell } from "@/components/MemoryNav";
 import { useAdminMode } from "@/hooks/useAdminMode";
-import { cities, cityFallbackSprite } from "@/data/cities";
+import { cities } from "@/data/cities";
 import { ImagePlus, MapPin, Search, Trash2 } from "lucide-react";
 import { readCompressedImageDataUrl } from "@/utils/imageUtils";
 import { landmarkPhotoMaxDimension, landmarkPhotoQuality, type CityAssetStore } from "@/components/province/Shared";
@@ -37,10 +37,6 @@ export default function LandmarksPage() {
     return cities.filter(
       (c) => c.name.toLowerCase().includes(q) || c.nameEn.toLowerCase().includes(q),
     );
-  }, [searchQuery]);
-
-  useEffect(() => {
-    setCurrentPage(1);
   }, [searchQuery]);
 
   const totalPages = Math.ceil(filteredCities.length / ITEMS_PER_PAGE);
@@ -79,7 +75,7 @@ export default function LandmarksPage() {
 
       const data = await response.json();
       setCityAssets(data.assets);
-    } catch (err) {
+    } catch {
       alert("保存地标失败，请重试");
     } finally {
       setSavingCityId("");
@@ -111,7 +107,7 @@ export default function LandmarksPage() {
 
       const data = await response.json();
       setCityAssets(data.assets);
-    } catch (err) {
+    } catch {
       alert("删除失败，请重试");
     } finally {
       setSavingCityId("");
@@ -150,7 +146,10 @@ export default function LandmarksPage() {
               type="text"
               placeholder="搜索城市..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               className="w-full rounded-[8px] border border-[#D8DDD8] bg-[#FAFBF7] py-2.5 pl-9 pr-4 text-sm text-[#5A6670] outline-none transition focus:border-[#E8B8C2]"
             />
           </div>

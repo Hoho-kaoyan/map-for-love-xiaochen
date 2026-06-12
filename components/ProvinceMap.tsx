@@ -16,8 +16,7 @@ import {
   memoryApiCall, dispatchMemoryUpdate
 } from "./province/Shared";
 import CityPanel from "./province/CityPanel";
-import { MemoryImage } from "./province/MemoryImage";
-import { LocalPrivacyImage, LocalPrivacyImg } from "@/components/LocalPrivacyImage";
+import { LocalPrivacyImg } from "@/components/LocalPrivacyImage";
 
 
 interface ProvinceMapProps {

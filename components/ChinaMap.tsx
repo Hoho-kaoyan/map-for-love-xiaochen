@@ -18,9 +18,10 @@ import {
   memoryStoreUpdatedEvent,
   type LocalMemoryStore,
 } from "@/data/progress";
-import { type Memory, sortMemoriesByTime, moodConfig } from "@/data/memories";
+import { sortMemoriesByTime, moodConfig } from "@/data/memories";
 import { getCitiesByProvince } from "@/data/cities";
 import { provinces } from "@/data/provinces";
+import TimelineOverlay, { TimelineToggle } from "@/components/TimelineOverlay";
 
 interface ChinaMapProps {
   width?: number;
@@ -96,6 +97,7 @@ export default function ChinaMap({ width = 1100, height = 860, className }: Chin
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [localMemories, setLocalMemories] = useState<LocalMemoryStore>({});
   const [zoom, setZoom] = useState(1);
+  const [showTimeline, setShowTimeline] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -130,8 +132,23 @@ export default function ChinaMap({ width = 1100, height = 860, className }: Chin
     [localMemories],
   );
 
+  const projection = useMemo(() => makeProjection(width, height, 24), [width, height]);
+
+  const timelinePointCount = useMemo(() => {
+    const allMemories = Object.values(localMemories).flat();
+    const seen = new Set<string>();
+    let count = 0;
+    const sorted = sortMemoriesByTime(allMemories);
+    for (const m of sorted) {
+      if (!seen.has(m.cityId)) {
+        seen.add(m.cityId);
+        count++;
+      }
+    }
+    return count;
+  }, [localMemories]);
+
   const paths = useMemo(() => {
-    const projection = makeProjection(width, height, 24);
     const path = makePath(projection);
 
     return chinaFeatures.map((feature) => {
@@ -158,7 +175,7 @@ export default function ChinaMap({ width = 1100, height = 860, className }: Chin
         moodInfo: latestMoodInfo,
       };
     });
-  }, [height, litProvinceIds, localMemories, width]);
+  }, [projection, litProvinceIds, localMemories]);
 
   const hoveredPath = paths.find((path) => path.id === hoveredId);
   const zoomProgress = ((zoom - minZoom) / (maxZoom - minZoom)) * 100;
@@ -222,6 +239,13 @@ export default function ChinaMap({ width = 1100, height = 860, className }: Chin
         >
           <RotateCcw className="h-4 w-4" />
         </button>
+        <div className="border-t border-[#D8DDD8]/50 pt-2">
+          <TimelineToggle
+            visible={showTimeline}
+            onToggle={() => setShowTimeline((v) => !v)}
+            pointCount={timelinePointCount}
+          />
+        </div>
       </div>
 
       <motion.div
@@ -339,6 +363,13 @@ export default function ChinaMap({ width = 1100, height = 860, className }: Chin
             )}
           </g>
         </svg>
+
+        <TimelineOverlay
+          width={width}
+          height={height}
+          projection={projection}
+          visible={showTimeline}
+        />
 
         {hoveredPath?.province && (
           <motion.div

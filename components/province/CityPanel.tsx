@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useMemo } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useDragControls } from "framer-motion";
 import { ImagePlus, Maximize2, Minimize2, Pencil, Plus, Trash2, X } from "lucide-react";
 import { type City } from "@/data/cities";
 import { type Memory, sortMemoriesByTime, getLatestMemory, type MemoryMood, moodConfig } from "@/data/memories";
@@ -40,7 +40,7 @@ export default function CityPanel({
   onDelete: (cityId: string, memoryId: string) => Promise<void>;
   landmarkImage: string;
 }>) {
-  const defaultMemory = isLit ? getLatestMemory(city.id) : undefined;
+  const defaultMemory = getLatestMemory(city.id);
   const memories = sortMemoriesByTime(
     [
       ...localMemories,
@@ -56,7 +56,7 @@ export default function CityPanel({
     () => new Set(localMemories.map((item) => item.id)),
     [localMemories],
   );
-  const [formOpen, setFormOpen] = useState(!isLit && isAdmin);
+  const [formOpen, setFormOpen] = useState(memories.length === 0 && isAdmin);
   const [date, setDate] = useState("");
   const [text, setText] = useState("");
   const [mood, setMood] = useState<MemoryMood | undefined>();
@@ -68,7 +68,6 @@ export default function CityPanel({
   const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
   const [deletingMemoryId, setDeletingMemoryId] = useState("");
   const [deleteError, setDeleteError] = useState("");
-  const [expanded, setExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<MemoryPanelTab>("memory");
   const [isReadingPhoto, setIsReadingPhoto] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -78,6 +77,13 @@ export default function CityPanel({
   const photoReadTokenRef = useRef(0);
   const mountedRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dragControls = useDragControls();
+
+  useEffect(() => {
+    if (memories.length > 0 && formOpen && !date && !text && photoDrafts.length === 0 && !editingMemory) {
+      setFormOpen(false);
+    }
+  }, [memories.length, formOpen, date, text, photoDrafts.length, editingMemory]);
 
   const trimmedDate = date.trim();
   const trimmedText = text.trim();
@@ -91,9 +97,9 @@ export default function CityPanel({
     !photoError &&
     !isSaving;
   const isEditing = Boolean(editingMemory);
-  const showMemory = (!expanded || activeTab === "memory") && !formOpen;
-  const showGallery = expanded && activeTab === "gallery" && !formOpen;
-  const showHistory = (!expanded || activeTab === "history") && memories.length > 0 && !formOpen;
+  const showMemory = activeTab === "memory" && !formOpen;
+  const showGallery = activeTab === "gallery" && !formOpen;
+  const showHistory = activeTab === "history" && memories.length > 0 && !formOpen;
 
   const openLightbox = (photos: string[], startIndex: number, cityLabel: string) => {
     setLightboxPhotos(photos.map((src, i) => ({
@@ -294,28 +300,25 @@ export default function CityPanel({
 
   return (
     <motion.article
-      className={`absolute z-50 overflow-y-auto rounded-[8px] border border-[#D8DDD8] bg-[#FAFBF7]/94 text-[#5A6670] shadow-[0_18px_42px_rgba(90,102,112,0.18)] backdrop-blur ${
-        expanded
-          ? "max-h-[min(720px,calc(100vh-92px))] w-[390px] p-6"
-          : "max-h-[min(620px,calc(100vh-110px))] w-[292px] p-5"
-      }`}
-      onClick={(event) => event.stopPropagation()}
-      onPointerDown={(event) => event.stopPropagation()}
-      onPointerMove={(event) => event.stopPropagation()}
-      onWheel={(event) => event.stopPropagation()}
-      initial={{ opacity: 0, y: 16, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={spring}
-      style={
-        expanded
-          ? { right: 0, top: 12 }
-          : {
-              left: anchor ? anchor.x : 24,
-              top: anchor ? anchor.y : "50%",
-            }
-      }
+      drag
+      dragListener={false}
+      dragControls={dragControls}
+      dragMomentum={false}
+      className="absolute inset-0 m-auto h-fit z-50 w-full max-w-[340px] sm:w-[380px] sm:max-w-none md:w-[420px] pointer-events-auto"
+      style={{ touchAction: "none" }}
     >
-      <div className="flex items-start justify-between gap-4">
+      <motion.div
+        className="flex flex-col overflow-y-auto rounded-[10px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/90 shadow-[0_22px_56px_rgba(90,102,112,0.16)] backdrop-blur-xl max-h-[min(820px,calc(100vh-110px))] w-full p-6"
+        onClick={(event) => event.stopPropagation()}
+        onWheel={(event) => event.stopPropagation()}
+        initial={{ opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={spring}
+      >
+        <div 
+          className="flex items-start justify-between gap-4 cursor-grab active:cursor-grabbing touch-none"
+          onPointerDown={(e) => dragControls.start(e)}
+        >
         <div>
           <h2 className="flex items-center gap-2 text-xl font-semibold">
             <span className={`h-3 w-3 rounded-sm ${isLit ? "bg-[#E8B8C2]" : "bg-[#D8DDD8]"}`} />
@@ -331,14 +334,6 @@ export default function CityPanel({
         </div>
         <div className="flex items-center gap-1">
           <button
-            className="grid h-8 w-8 place-items-center rounded-[6px] text-[#5A6670]/62 transition hover:bg-[#D6E8F0]/32 hover:text-[#A8C8DC]"
-            onClick={() => setExpanded((value) => !value)}
-            aria-label={expanded ? "收起城市记录面板" : "展开城市记录面板"}
-            type="button"
-          >
-            {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-          </button>
-          <button
             className="grid h-8 w-8 place-items-center rounded-[6px] text-[#5A6670]/62 transition hover:bg-[#D8DDD8]/28 hover:text-[#5A6670]"
             onClick={onClose}
             aria-label="关闭回忆卡片"
@@ -349,8 +344,7 @@ export default function CityPanel({
         </div>
       </div>
 
-      {expanded && (
-        <div className="mt-4 flex rounded-[8px] border border-[#D8DDD8]/72 bg-[#FAFBF7]/72 p-1 text-xs font-semibold text-[#5A6670]/58">
+      <div className="mt-4 flex rounded-[8px] border border-[#D8DDD8]/72 bg-[#FAFBF7]/72 p-1 text-xs font-semibold text-[#5A6670]/58">
           {([
             ["memory", "回忆"],
             ["gallery", "相册"],
@@ -368,7 +362,7 @@ export default function CityPanel({
             </button>
           ))}
         </div>
-      )}
+
 
       {showMemory && (
         <>
@@ -393,7 +387,7 @@ export default function CityPanel({
           </div>
 
           {memoryPhotos.length > 1 && (
-            <div className={`mt-3 grid gap-2 ${expanded ? "grid-cols-5" : "grid-cols-4"}`}>
+            <div className="mt-3 grid gap-2 grid-cols-5">
               {memoryPhotos.map((photo, index) => {
                 const isCover = memory?.image === photo;
 
@@ -486,7 +480,7 @@ export default function CityPanel({
             <p className="text-xs font-semibold text-[#5A6670]/70">历史记录</p>
             <span className="text-[11px] text-[#5A6670]/42">{memories.length} 条</span>
           </div>
-          <div className={`mt-3 ${expanded ? "space-y-4" : "space-y-3"}`}>
+          <div className="mt-3 space-y-4">
             {memories.map((record, recordIndex) => {
               const recordPhotos = photosOfMemory(record);
               const editable = localMemoryIds.has(record.id);
@@ -532,8 +526,8 @@ export default function CityPanel({
                   </div>
                   <p className="mt-2 text-xs leading-5 text-[#5A6670]/72">{record.text}</p>
                   {recordPhotos.length > 0 && (
-                    <div className={`mt-3 grid gap-1.5 ${expanded ? "grid-cols-6" : "grid-cols-5"}`}>
-                      {recordPhotos.slice(0, expanded ? 12 : 10).map((photo, photoIndex) => (
+                    <div className="mt-3 grid gap-1.5 grid-cols-6">
+                      {recordPhotos.slice(0, 12).map((photo, photoIndex) => (
                         <span
                           key={`${record.id}-timeline-photo-${photoIndex}`}
                           className="relative aspect-square overflow-hidden rounded-[4px] border border-[#D8DDD8] bg-[#D6E8F0]"
@@ -743,6 +737,7 @@ export default function CityPanel({
           onClose={() => setLightboxPhotos([])}
         />
       )}
+      </motion.div>
     </motion.article>
   );
 }

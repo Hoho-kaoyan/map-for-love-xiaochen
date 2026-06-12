@@ -6,7 +6,9 @@ import {
   ChevronRight,
   Heart,
   MapPin,
+  Search,
   Star,
+  X,
 } from "lucide-react";
 import { cities } from "@/data/cities";
 import { MemoryPageShell } from "@/components/MemoryNav";
@@ -108,6 +110,7 @@ export default function MemoryArchive() {
   const [localMemories, setLocalMemories] = useState<LocalMemoryStore>({});
   const [view, setView] = useState<ArchiveView>("city");
   const [moodFilter, setMoodFilter] = useState<MemoryMood | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [expandedCities, setExpandedCities] = useState<Set<string>>(new Set());
   const [lightboxPhotos, setLightboxPhotos] = useState<LightboxPhoto[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -147,13 +150,26 @@ export default function MemoryArchive() {
       if (!memory.draft) byId.set(memory.id, memory);
     });
 
+    const query = searchQuery.trim().toLowerCase();
+
     return sortMemoriesByTime([...byId.values()])
       .filter((memory) => moodFilter === "all" || memory.mood === moodFilter)
+      .filter((memory) => {
+        if (!query) return true;
+        const city = cities.find((c) => c.id === memory.cityId);
+        return (
+          memory.city.toLowerCase().includes(query) ||
+          memory.cityEn.toLowerCase().includes(query) ||
+          memory.date.includes(query) ||
+          memory.text.toLowerCase().includes(query) ||
+          (city?.nameEn.toLowerCase().includes(query) ?? false)
+        );
+      })
       .map((memory) => ({
         memory,
         city: cities.find((city) => city.id === memory.cityId),
       }));
-  }, [localMemories, moodFilter]);
+  }, [localMemories, moodFilter, searchQuery]);
 
   const cityGroups = useMemo(() => {
     const groups = new Map<string, MemoryItem[]>();
@@ -238,9 +254,29 @@ export default function MemoryArchive() {
             </div>
           </header>
 
-          <div className="mt-6 flex flex-wrap items-center gap-2 border-b border-[#D8DDD8]/50 pb-6">
-            <span className="text-sm font-semibold text-[#5A6670]/70 mr-2">心情筛选：</span>
-            <button
+          <div className="mt-6 flex flex-col gap-4 border-b border-[#D8DDD8]/50 pb-6">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5A6670]/40" />
+              <input
+                type="text"
+                placeholder="搜索城市、日期或回忆内容..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full rounded-[8px] border border-[#D8DDD8] bg-[#FAFBF7] py-2.5 pl-9 pr-9 text-sm text-[#5A6670] outline-none transition focus:border-[#E8B8C2] focus:bg-white placeholder:text-[#5A6670]/40"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5A6670]/40 hover:text-[#5A6670]/70"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm font-semibold text-[#5A6670]/70">心情：</span>
+              <button
               type="button"
               onClick={() => setMoodFilter("all")}
               className={`rounded-[6px] px-3 py-1.5 text-xs font-semibold transition ${
@@ -266,25 +302,45 @@ export default function MemoryArchive() {
                 <span>{info.label}</span>
               </button>
             ))}
+            </div>
           </div>
 
           {memoryItems.length === 0 ? (
             <div className="mt-12 grid min-h-[420px] place-items-center rounded-[8px] border border-dashed border-[#D8DDD8] bg-[#FAFBF7]/58 px-6 py-14 text-center shadow-[0_14px_34px_rgba(90,102,112,0.045)] backdrop-blur">
               <div className="max-w-[430px]">
                 <div className="mx-auto grid h-16 w-16 place-items-center rounded-[8px] border border-[#F5DCE0] bg-[#F5DCE0]/42">
-                  <Heart className="h-8 w-8 fill-[#F5DCE0] text-[#E8B8C2]" />
+                  {searchQuery ? (
+                    <Search className="h-8 w-8 text-[#E8B8C2]" />
+                  ) : (
+                    <Heart className="h-8 w-8 fill-[#F5DCE0] text-[#E8B8C2]" />
+                  )}
                 </div>
-                <h2 className="mt-5 text-2xl font-semibold text-[#5A6670]">还没有回忆记录</h2>
+                <h2 className="mt-5 text-2xl font-semibold text-[#5A6670]">
+                  {searchQuery ? "没有找到匹配的回忆" : "还没有回忆记录"}
+                </h2>
                 <p className="mt-3 text-sm leading-7 text-[#5A6670]/60">
-                  回到地图，点开一座城市，添加日期、照片和一句话回忆。保存后这里会自动按城市和时间整理。
+                  {searchQuery
+                    ? `没有找到包含"${searchQuery}"的回忆，试试其他关键词。`
+                    : "回到地图，点开一座城市，添加日期、照片和一句话回忆。保存后这里会自动按城市和时间整理。"}
                 </p>
-                <Link
-                  className="mt-6 inline-flex items-center gap-2 rounded-[8px] border border-[#A8C8DC] bg-[#FAFBF7]/78 px-5 py-3 text-sm font-semibold text-[#A8C8DC] transition hover:bg-[#D6E8F0]/34"
-                  href="/map"
-                >
-                  <MapPin className="h-4 w-4" />
-                  回到地图
-                </Link>
+                {searchQuery ? (
+                  <button
+                    className="mt-6 inline-flex items-center gap-2 rounded-[8px] border border-[#E8B8C2] bg-[#FAFBF7]/78 px-5 py-3 text-sm font-semibold text-[#E8B8C2] transition hover:bg-[#F5DCE0]/34"
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <X className="h-4 w-4" />
+                    清除搜索
+                  </button>
+                ) : (
+                  <Link
+                    className="mt-6 inline-flex items-center gap-2 rounded-[8px] border border-[#A8C8DC] bg-[#FAFBF7]/78 px-5 py-3 text-sm font-semibold text-[#A8C8DC] transition hover:bg-[#D6E8F0]/34"
+                    href="/map"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    回到地图
+                  </Link>
+                )}
               </div>
             </div>
           ) : view === "city" ? (

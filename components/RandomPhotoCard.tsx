@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { Camera, MapPin, RefreshCw } from "lucide-react";
 import { cities } from "@/data/cities";
 import { memories, type Memory } from "@/data/memories";
@@ -111,12 +111,25 @@ export default function RandomPhotoCard() {
   }, [photo]);
 
   const shufflePhoto = () => {
-    if (!photo) return;
-    if (photos.length === 0) return;
-    const candidates = photos.filter((candidate) => candidate.id !== photo.id);
-    const source = candidates.length > 0 ? candidates : photos;
-    setPhoto(source[Math.floor(Math.random() * source.length)]);
+    setPhoto((current) => {
+      if (!current) return current;
+      const candidates = photos.filter((candidate) => candidate.id !== current.id);
+      const source = candidates.length > 0 ? candidates : photos;
+      return source[Math.floor(Math.random() * source.length)];
+    });
   };
+
+  const savedCallback = useRef(shufflePhoto);
+
+  useEffect(() => {
+    savedCallback.current = shufflePhoto;
+  });
+
+  useEffect(() => {
+    if (photos.length <= 1) return;
+    const timer = setInterval(() => savedCallback.current(), 10000);
+    return () => clearInterval(timer);
+  }, [photos.length]);
 
   return (
     <aside className="absolute bottom-[4.75rem] right-[2.5rem] z-30 hidden w-[248px] rotate-[-1.5deg] xl:block">
