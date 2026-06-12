@@ -14,13 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Map of Us",
+  title: "Map for Love",
   description: "A private map for memories we made together.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Map of Us",
+    title: "Map for Love",
   },
 };
 
