@@ -514,7 +514,7 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
         <motion.div
           className="absolute left-0 top-0 origin-top-left"
           animate={{ scale: camera.scale, x: camera.x, y: camera.y }}
-          transition={spring}
+          transition={dragging ? { type: "tween", duration: 0 } : spring}
           style={{
             width,
             height,

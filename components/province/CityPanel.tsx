@@ -79,9 +79,13 @@ export default function CityPanel({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragControls = useDragControls();
 
+  const userOpenedFormRef = useRef(false);
+
   useEffect(() => {
     if (memories.length > 0 && formOpen && !date && !text && photoDrafts.length === 0 && !editingMemory) {
-      setFormOpen(false);
+      if (!userOpenedFormRef.current) {
+        setFormOpen(false);
+      }
     }
   }, [memories.length, formOpen, date, text, photoDrafts.length, editingMemory]);
 
@@ -552,7 +556,10 @@ export default function CityPanel({
         <button
           className="mt-4 flex w-full items-center gap-2 border-t border-dashed border-[#D8DDD8] pt-4 text-sm font-medium text-[#5A6670]/78 transition hover:text-[#A8C8DC]"
           type="button"
-          onClick={() => setFormOpen(true)}
+          onClick={() => {
+            userOpenedFormRef.current = true;
+            setFormOpen(true);
+          }}
           disabled={!isAdmin}
         >
           <Plus className="h-4 w-4" />
@@ -717,8 +724,9 @@ export default function CityPanel({
                   type="button"
                   disabled={isSaving}
                   onClick={() => {
-                    resetForm(true);
+                    userOpenedFormRef.current = false;
                     setFormOpen(false);
+                    resetForm(true);
                   }}
                 >
                   取消

@@ -134,6 +134,21 @@ export default function ChinaMap({ width = 1100, height = 860, className }: Chin
 
   const projection = useMemo(() => makeProjection(width, height, 24), [width, height]);
 
+  useEffect(() => {
+    const handleToggle = (e: CustomEvent<boolean>) => {
+      const active = e.detail;
+      setShowTimeline(active);
+      setZoom(active ? 1.35 : 1);
+    };
+    window.addEventListener("toggle-timeline", handleToggle as EventListener);
+    return () => window.removeEventListener("toggle-timeline", handleToggle as EventListener);
+  }, []);
+
+  useEffect(() => {
+    // Keep sidebar card in sync with local state (e.g. if map unmounts or timeline auto-closes)
+    window.dispatchEvent(new CustomEvent("timeline-state-sync", { detail: showTimeline }));
+  }, [showTimeline]);
+
   const timelinePointCount = useMemo(() => {
     const allMemories = Object.values(localMemories).flat();
     const seen = new Set<string>();
@@ -195,7 +210,12 @@ export default function ChinaMap({ width = 1100, height = 860, className }: Chin
       transition={{ type: "spring", stiffness: 100, damping: 20 }}
       style={{ aspectRatio: `${width} / ${height}` }}
     >
-      <div className="absolute left-3 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-2 rounded-full border border-[#D8DDD8]/85 bg-[#FAFBF7]/82 px-2 py-3 shadow-[0_12px_28px_rgba(90,102,112,0.1)] backdrop-blur sm:left-4">
+      <motion.div 
+        drag
+        dragMomentum={false}
+        style={{ touchAction: "none" }}
+        className="absolute left-3 top-0 bottom-0 my-auto h-fit z-20 flex flex-col items-center gap-2 rounded-[24px] border border-[#D8DDD8]/85 bg-[#FAFBF7]/82 px-2 py-3 shadow-[0_12px_28px_rgba(90,102,112,0.1)] backdrop-blur sm:left-4 cursor-grab active:cursor-grabbing"
+      >
         <button
           className="grid h-9 w-9 place-items-center rounded-full text-[#5A6670] transition hover:bg-[#D6E8F0]/42 disabled:opacity-35"
           type="button"
@@ -239,14 +259,7 @@ export default function ChinaMap({ width = 1100, height = 860, className }: Chin
         >
           <RotateCcw className="h-4 w-4" />
         </button>
-        <div className="border-t border-[#D8DDD8]/50 pt-2">
-          <TimelineToggle
-            visible={showTimeline}
-            onToggle={() => setShowTimeline((v) => !v)}
-            pointCount={timelinePointCount}
-          />
-        </div>
-      </div>
+      </motion.div>
 
       <motion.div
         className="map-visual-scale relative h-full w-full overflow-visible"

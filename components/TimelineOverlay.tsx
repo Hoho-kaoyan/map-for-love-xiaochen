@@ -87,7 +87,7 @@ export default function TimelineOverlay({
       });
     }
 
-    return points;
+    return points.reverse();
   }, [localMemories, projection]);
 
   const pathD = useMemo(() => {
@@ -219,12 +219,30 @@ export default function TimelineOverlay({
               transition={{ delay: index * 0.4, duration: 0.3 }}
             />
 
+            {/* Photo popup */}
+            {isActive && point.image && (
+              <motion.foreignObject
+                x={point.x - 45}
+                y={point.y - 110}
+                width="90"
+                height="100"
+                initial={{ opacity: 0, y: 30, scale: 0.4, rotate: index % 2 === 0 ? -25 : 25 }}
+                animate={{ opacity: 1, y: 0, scale: 1, rotate: index % 2 === 0 ? -6 : 6 }}
+                transition={{ delay: index * 0.4 + 0.15, type: "spring", bounce: 0.55 }}
+                className="overflow-visible pointer-events-none"
+              >
+                <div className="flex h-full w-full flex-col bg-[#FAFBF7] p-1.5 pb-5 shadow-[0_12px_24px_rgba(90,102,112,0.22)] rounded-[4px] border border-[#D8DDD8]/50">
+                   <img src={point.image} alt={point.cityName} className="w-full flex-1 rounded-[2px] object-cover bg-[#D6E8F0]/30" />
+                </div>
+              </motion.foreignObject>
+            )}
+
             {/* City label */}
             {isActive && (
               <motion.g
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: index * 0.4 + 0.15, duration: 0.3 }}
+                transition={{ delay: index * 0.4 + 0.3, duration: 0.3 }}
               >
                 <rect
                   x={point.x + 10}
@@ -258,7 +276,7 @@ export default function TimelineOverlay({
               </motion.g>
             )}
 
-            {/*序号 */}
+            {/* Number badge */}
             <motion.circle
               cx={point.x}
               cy={point.y - 14}
@@ -301,10 +319,10 @@ export function TimelineToggle({
 
   return (
     <button
-      className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition ${
+      className={`grid h-9 w-9 place-items-center rounded-full transition ${
         visible
           ? "bg-[#E8B8C2] text-white shadow-[0_4px_12px_rgba(232,184,194,0.4)]"
-          : "text-[#5A6670]/70 hover:bg-[#F5DCE0]/55 hover:text-[#E8B8C2]"
+          : "text-[#5A6670] hover:bg-[#F5DCE0]/55 hover:text-[#E8B8C2]"
       }`}
       type="button"
       onClick={onToggle}
@@ -312,7 +330,6 @@ export function TimelineToggle({
       title={visible ? "隐藏时间线" : "显示旅行时间线"}
     >
       <Route className="h-4 w-4" />
-      <span className="hidden sm:inline">时间线</span>
     </button>
   );
 }

@@ -25,8 +25,9 @@
     "directories": {
       "output": "dist"
     },
-    "asar": false,
+    "asar": true,
     "npmRebuild": false,
+    "afterPack": "./scripts/after-pack.cjs",
     "files": [
       "!node_modules/**/*",
       "electron/**/*",
