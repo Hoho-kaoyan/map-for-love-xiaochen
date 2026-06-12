@@ -7,7 +7,6 @@ import { MemoryPageShell } from '@/components/MemoryNav';
 import { useAdminMode } from '@/hooks/useAdminMode';
 import { CitySearchSelect } from '@/components/shared/CitySearchSelect';
 import {
-  appSettingsUpdatedEvent,
   readAppSettings,
   writeAppSettings,
   defaultWeatherCityIds,
@@ -49,16 +48,6 @@ export default function WeatherPage() {
 
   useEffect(() => {
     setAppSettings(readAppSettings());
-
-    const handleSettingsUpdate = (event: Event) => {
-      const nextSettings = (event as CustomEvent<AppSettings>).detail;
-      setAppSettings(nextSettings);
-    };
-
-    window.addEventListener(appSettingsUpdatedEvent, handleSettingsUpdate);
-    return () => {
-      window.removeEventListener(appSettingsUpdatedEvent, handleSettingsUpdate);
-    };
   }, []);
 
   const updateWeatherCity = (index: number, cityId: string) => {
@@ -98,7 +87,7 @@ export default function WeatherPage() {
       </header>
 
       {status && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="mt-6 rounded-[12px] bg-[#FAFBF7]/80 p-3.5 text-sm font-semibold text-[#A8C8DC] shadow-sm backdrop-blur border border-[#D6E8F0]"
@@ -111,9 +100,9 @@ export default function WeatherPage() {
         {Array.from({ length: maxWeatherCities }).map((_, index) => {
           const dec = slotDecorations[index % slotDecorations.length];
           const Icon = dec.icon;
-          
+
           return (
-            <motion.div 
+            <motion.div
               key={`weather-slot-${index}`}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -142,7 +131,7 @@ export default function WeatherPage() {
                   </div>
                   <Droplets className={`h-4 w-4 ${dec.text} opacity-60`} />
                 </div>
-                
+
                 <div className="rounded-[10px] bg-white/40 p-1.5 backdrop-blur-md shadow-sm border border-white/50">
                   <CitySearchSelect
                     value={weatherCityIds[index] ?? ""}

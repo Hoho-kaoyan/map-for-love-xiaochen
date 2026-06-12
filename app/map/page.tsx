@@ -94,7 +94,7 @@ export default function MapPage() {
               <BrandMark />
               <div>
                 <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.01em] text-[#5A6670]">
-                  Map For Everyone
+                  Map for Love
                 </h1>
                 <p className="mt-1 text-base font-medium text-[#5A6670]/62">所有人的地图</p>
               </div>

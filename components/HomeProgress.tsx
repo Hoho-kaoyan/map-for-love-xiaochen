@@ -490,7 +490,7 @@ function AlbumProgressCard() {
         <div className="mb-3 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-[#5A6670]">我们的进度</p>
-            <p className="mt-0.5 text-xs text-[#5A6670]/52">Map For Everyone</p>
+            <p className="mt-0.5 text-xs text-[#5A6670]/52">Map for Love</p>
           </div>
           <Heart className="h-5 w-5 fill-[#F5DCE0] text-[#E8B8C2]" />
         </div>
@@ -552,10 +552,10 @@ function CoupleLogo() {
           fill
           sizes="208px"
           className={`object-contain transition-transform duration-300 ease-out ${activeHead === "left"
-              ? "scale-[1.08] origin-[33%_47%]"
-              : activeHead === "right"
-                ? "scale-[1.08] origin-[69%_45%]"
-                : "scale-100"
+            ? "scale-[1.08] origin-[33%_47%]"
+            : activeHead === "right"
+              ? "scale-[1.08] origin-[69%_45%]"
+              : "scale-100"
             }`}
         />
         <button

@@ -147,7 +147,7 @@ export function BackupSection({
       setMemoryCount(Object.values(data.memories).flat().length);
       setStatus("导入完成，地图和回忆记录已刷新");
     } catch {
-      setStatus("导入失败，请确认选择的是 Map For Everyone 备份文件");
+      setStatus("导入失败，请确认选择的是 Map for Love 备份文件");
     } finally {
       setIsWorking(false);
       if (importInputRef.current) importInputRef.current.value = "";
