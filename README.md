@@ -2,9 +2,17 @@
 
 # Map for Love
 
-Map for Love 是一个本地优先的个人情侣记忆地图应用。它使用 Next.js 16 App Router、React 19、Tailwind 4 和 Electron，可以在浏览器里开发，也可以打包成桌面应用。
+## 📦 快速下载体验 (Download)
 
-当前版本的目标是：数据全部保存在用户自己的电脑上，不依赖 Supabase，不需要联网认证。
+
+- 💻 [**下载 Windows 版 (64位) 安装包**](https://github.com/WyankinzZ/map-for-love/releases/download/download/Map-for-Love-0.1.0-x64-Setup.exe)
+- 📱 [**下载 Android 版 (APK) 安装包**](https://github.com/WyankinzZ/map-for-love/releases/download/download/map-for-love-v0.1.0.apk)
+
+---
+
+Map for Love 是一个本地优先的个人情侣记忆地图应用。它使用 Next.js 16 App Router、React 19、Tailwind 4 和 Electron，可以在浏览器里开发，也可以打包成桌面应用，同样可以打包为Android应用。
+
+当前版本：可以将数据全部存储在本地，同时也可以全部存储在阿里云oss上。
 
 ## 功能
 
@@ -45,8 +53,19 @@ Map for Love 是一个本地优先的个人情侣记忆地图应用。它使用 
    - **极致的并发请求去重 (Fetch Deduplicator)**：针对 Next.js 开发环境下首页刷新时由于 8+ 个组件同时请求带来的高并发 I/O 卡顿，我们在底层引入了细粒度的 Promise 缓存与响应克隆机制。使得即使数十个组件同时发起读取指令，实际到达后端的请求也永远**只有 1 个**，界面渲染顺滑如初。
    - **全屏画廊弹窗重构**：利用 React `createPortal` 强行突破了复杂地图交互组件中 `transform` 等样式造成的固定定位 (Fixed Positioning) 坍塌问题，让放大的照片画廊能纯净无阻地覆盖在应用的最顶层。
    - **原生日期选择器**：彻底废弃了容易输错的手动日期输入框，改为调用系统原生的日历控件 (`<input type="date">`)，并在后台自动格式化为 `YYYY.MM.DD`，既规范又便捷。
-   - **专属心情标签系统**：在新增回忆时，引入了全新的“心情标签”系统（包含开心 😁、浪漫 🌹、甜蜜 🥰 等）。不同心情对应特定的专属主题色，这些颜色会智能联动到地图上的发光标记点以及时光轨迹的光效上。
+   - **专属心情标签系统**：在新增回忆时，引入了全新的“心情标签”系统（包含开心 😁、浪漫 🌹、甜蜜 🥰 等）。不同心情对应特定的专属主题色，这些颜色会智能联动到地图上的发光标记点以及时光轨迹的光效上。现已全面支持在单张上传与 EXIF 批量导入时快捷指定专属心情。
    - **底层性能优化**：通过基于 `useRef` 的定时器改造，彻底解决了随机照片画廊在长时间挂机或频繁重渲染时的闭包状态过期卡顿问题。
+
+5. **移动端与客户端深度优化 (Mobile & Native App Experience)**
+   - **全局底部导航栏**：专为手机版打造了丝滑的磨砂玻璃底部导航栏，可一键在“地图”、“相册”与“设置”间无缝切换，实现媲美原生 App 的沉浸式操作体验。
+   - **可收起/拖拽的桌面小组件**：随机相框及登录页预览相册加入了高度自由的拖拽特性，不仅可以全屏任意悬浮，还支持一键“收缩/隐藏”为极简图标，最大化释放手机屏幕空间。
+   - **响应式界面重构**：针对移动设备重新排版了侧边栏统计信息，智能隐藏次要控件（如占位时间框），优化组件层级（将时间线、倒数日等前置展示），并在移动端清空冗余图标，极致纯净。
+   - **原生安卓 APK 打包支持**：全面引入 Capacitor 打包方案，支持通过 `@capacitor/assets` 自动化生成各分辨率桌面图标并打包生成原生 Android `.apk` 应用文件，真正实现“装进手机里的专属回忆”。
+
+7. **云端存储架构升级 (Cloud Storage Integration)**
+   - **阿里云 OSS 无缝接入**：在设置界面新增了管理员专属的阿里云 OSS 存储配置面板。支持动态绑定 `Region`、`Bucket` 和脱敏保护的访问密钥（`AccessKeyId` / `AccessKeySecret` 均通过密码框黑点隐藏，并附带一键清除功能）。
+   - **优雅降级策略 (Graceful Fallback)**：底层开发了极为平滑的双通道存储系统。一旦配置了 OSS 云端，所有新添加和批量导入的照片将直接长连接上传至阿里云，系统生成的 json 备份文件体积也随之从数百 MB 缩减至几 KB（仅存储 URL）；若新设备未配置云端或密钥文件不存在，系统会自动“静默降级”回原生的本地 Base64 存储模式，全程零报错、开箱即用。
+   - **最高级别隐私保护**：OSS 密码等敏感数据均写入被 Git 强行阻拦在外的 `.private.json` 文件。既保证了源码在 GitHub 等开源社区的安全流转，又让备份分享时杜绝了密钥泄露的风险。
 
 ## 桌面版密码
 
@@ -85,9 +104,6 @@ Map for Love 是一个本地优先的个人情侣记忆地图应用。它使用 
 
 1. 运行 `Map for Love-0.1.0-x64-Setup.exe` 安装。
 2. 若出现蓝色 **SmartScreen** 提示：点 **更多信息 → 仍要运行**。
-
-
-
 
 
 ## 桌面打包
@@ -137,76 +153,68 @@ dist/Map for Love-0.1.0-x64-Setup.exe
 
 ## 数据保存位置
 
-浏览器开发模式默认写入项目目录：
+本项目采用“配置即数据库”的无服务器架构。所有的文本回忆、关系绑定和环境配置均以 `.json` 格式保存在本地。图片与媒体则根据是否配置了云端，采用双轨制存储。
+
+开发模式下默认写入项目目录的 `data` 文件夹：
 
 ```text
-data/localMemories.private.json
-data/cityAssets.private.json
-data/loginPhotos.private.json
+data/localMemories.private.json   # 城市回忆数据
+data/cityAssets.private.json      # 城市地标与封面
+data/loginPhotos.private.json     # 登录页照片与文案
+data/ossConfig.private.json       # 阿里云 OSS 存储密钥 (由系统自动生成)
 ```
+> ⚠️ **注意**：所有 `.private.json` 文件已被 `.gitignore` 彻底屏蔽，绝不会被意外上传到 GitHub，从根本上保证了 OSS 密钥和个人隐私的安全。
 
-桌面打包版写入 Electron `userData/data`。常见位置：
+**桌面打包版**会写入 Electron 的 `userData/data` 目录。常见位置：
+- macOS: `~/Library/Application Support/Map for Love/data`
+- Windows: `%APPDATA%/Map for Love/data`
 
-```text
-macOS: ~/Library/Application Support/Map for Love/data
-Windows: %APPDATA%/Map for Love/data
-```
+**移动端 (Android)**:
+数据通过 Capacitor 写入应用沙盒的 `localStorage` 和内部存储。
 
-可用环境变量覆盖桌面数据目录：
-
-```text
-MAP_OF_US_DATA_DIR=/path/to/data
-```
-
-打包版会强制启用本地文件存储：
-
-```text
-MAP_OF_US_STORAGE_MODE=local
-MAP_OF_US_DESKTOP=1
-```
-
-因此即使 `NODE_ENV=production`，新增、编辑、删除和导入回忆也不会要求 Supabase。
+---
 
 ## 可自定义内容
 
-在设置页开启管理员模式后，可以自定义：
+在设置页（通过密码开启管理员模式后），应用为你提供了极高自由度的定制能力：
 
-- 纪念日名称和开始日期。
-- 首页“沿途天气”的城市。
-- 右下角情侣 logo。
-- 登录页九宫格照片。
-- 登录页每张照片的城市名和标签文案。
-- 城市地标图。
+- **核心内容定制**：纪念日名称/开始日期、首页沿途天气城市、右下角专属情侣 Logo。
+- **登录界面定制**：登录页沉浸式 3x3 九宫格照片画廊、每张照片对应的城市名与专属情侣标签文案。
+- **存储架构配置**：**[新增]** 阿里云 OSS 参数面板。支持一键绑定 `Region`、`Bucket` 与隐藏保护的 `AccessKeyId` / `AccessKeySecret`，配置后照片将自动起飞至云端。
+- **批量数据录入**：**[新增]** 支持通过 EXIF 读取一键批量导入照片，并可为每次回忆指定专属的“心情色彩”。
 
-这些设置会随完整备份一起导出。登录页照片、城市地标和回忆照片以本地数据形式保存。
+除 OSS 密钥外的所有定制内容，均会随着“导出备份”一起打包保存。
+
+---
 
 ## 备份和迁移
 
-在设置页使用“导出备份”保存完整备份文件。文件名会包含日期。
+在设置页使用“导出备份”可保存一份完整的 JSON 备份文件（自动包含导出日期）。
 
-换电脑或重装后：
+**换电脑、重装系统或多端同步时的恢复步骤：**
 
-1. 安装并打开桌面应用。
-2. 输入站点密码进入地图。
-3. 进入设置页，用管理员密码开启管理员模式。
-4. 导入备份文件。
+1. 下载并安装对应平台的桌面应用或 APK。
+2. 使用初始或你设定的站点密码进入地图。
+3. 进入左侧“设置”页，用管理员密码开启管理员模式。
+4. 点击“导入备份”并选择你的备份文件。
 
-导入会恢复回忆、城市地标、登录照片、纪念日、天气城市、logo，以及地点收藏、纪念日页面、时光宝盒等辅助数据。
+**备份机制的核心优势：**
+- **完美恢复**：导入瞬间会无损恢复回忆、城市地标、登录照片、纪念日、天气城市、Logo，以及所有收藏地点和时光宝盒内容。
+- **极致轻量**：如果你启用了阿里云 OSS，导出的备份文件体积将骤降至几 KB 到几十 KB 不等（因为笨重的照片 Base64 编码被替换成了极短的云端 URL链接）。
+- **隐私隔离**：**OSS 的云端访问密钥（AccessKey）出于安全考量，绝对不会包含在备份文件中！** 这意味着你可以安全地通过微信把备份发给伴侣或分享给他人。如果要在新设备上继续向云端传新照片，只需在新设备的设置页重新填一次 OSS 密钥即可。
 
-```
+---
 
 ## 目录速览
 
 ```text
-app/                     App Router 页面和 API
-components/              地图、入口页、回忆页和设置页组件
-data/                    省份、城市、进度和浏览器侧数据工具
-electron/                Electron 主进程入口
-lib/                     地理数据、隐私模式和服务端存储工具
-scripts/                 standalone 准备脚本
-public/logo/             logo 占位图
-public/photos/           默认照片素材
-public/sprites/          城市地标、图标和像素素材
-dist/                    本地打包产物
+app/                     Next.js 16 App Router 页面、API 路由 (含 OSS / Auth 核心逻辑)
+components/              全局 UI 组件 (地图渲染、回忆弹窗、动态相册、各类管理面板等)
+data/                    静态资源配置 (城市数据、全局常量) 以及生成的 .private.json
+electron/                Electron 桌面端主进程入口与系统集成代码
+lib/                     工具函数库 (地理测算、原生存储控制、OSS 上传策略、Auth)
+scripts/                 Next.js standalone 打包整理与自动构建脚本
+android/                 [新增] Capacitor 原生 Android 工程目录 (APK 打包核心)
+public/                  公用静态资源与占位图素材
+dist/                    桌面端 (Windows/Mac) 的本地最终打包产物 (.exe / .dmg)
 ```
-

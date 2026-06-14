@@ -1,6 +1,14 @@
 import { type Memory } from "@/data/memories";
 import { type LocalMemoryStore, memoryStoreUpdatedEvent } from "@/data/progress";
 import { writeAdminMode } from "@/data/adminMode";
+import {
+  readMemories as readMemoriesFromStorage,
+  writeMemories as writeMemoriesToStorage,
+  saveMemory as saveMemoryToStorage,
+  updateMemory as updateMemoryInStorage,
+  deleteMemory as deleteMemoryFromStorage,
+  getStorageMode,
+} from "@/lib/client/storage";
 
 export type BrowserTimeout = ReturnType<Window["setTimeout"]>;
 export type PhotoDraft = {
@@ -100,6 +108,34 @@ export async function memoryApiCall(
   method: string,
   body: Record<string, unknown>,
 ): Promise<MemoryApiResponse> {
+  if (getStorageMode() === "oss") {
+    try {
+      if (method === "POST") {
+        const memory = body.memory as Memory;
+        const result = await saveMemoryToStorage(memory.cityId, memory);
+        return result;
+      }
+      if (method === "PATCH") {
+        const { cityId, memoryId, memory } = body as { cityId: string; memoryId: string; memory: Record<string, unknown> };
+        const result = await updateMemoryInStorage(cityId, memoryId, memory);
+        return result;
+      }
+      if (method === "DELETE") {
+        const { cityId, memoryId } = body as { cityId: string; memoryId: string };
+        const result = await deleteMemoryFromStorage(cityId, memoryId);
+        return result;
+      }
+      if (method === "PUT") {
+        const memories = body.memories as LocalMemoryStore;
+        await writeMemoriesToStorage(memories);
+        return { memories };
+      }
+    } catch {
+      throw new Error("Failed");
+    }
+    throw new Error("Failed");
+  }
+
   const response = await fetch("/api/memories", {
     method,
     headers: { "Content-Type": "application/json" },
@@ -119,14 +155,24 @@ export function dispatchMemoryUpdate(memories: LocalMemoryStore) {
   window.dispatchEvent(new CustomEvent(memoryStoreUpdatedEvent, { detail: memories }));
 }
 
-let memoryFetchPromise: Promise<Response> | null = null;
-export function fetchMemoriesDeduplicated(): Promise<Response> {
+let memoryFetchPromise: Promise<LocalMemoryStore> | null = null;
+
+export async function fetchMemoriesDeduplicated(): Promise<LocalMemoryStore> {
   if (memoryFetchPromise) {
-    return memoryFetchPromise.then((res) => res.clone());
+    return memoryFetchPromise;
   }
-  memoryFetchPromise = fetch("/api/memories", { cache: "no-store" });
-  setTimeout(() => {
-    memoryFetchPromise = null;
-  }, 50);
-  return memoryFetchPromise.then((res) => res.clone());
+
+  memoryFetchPromise = (async () => {
+    try {
+      return await readMemoriesFromStorage();
+    } catch {
+      return {};
+    } finally {
+      setTimeout(() => {
+        memoryFetchPromise = null;
+      }, 50);
+    }
+  })();
+
+  return memoryFetchPromise;
 }

@@ -375,7 +375,7 @@ function DateTimeCard() {
   }, []);
 
   return (
-    <div className="mb-4 rounded-[8px] border border-[#D8DDD8]/70 bg-[#FAFBF7]/62 px-4 py-3 text-[#5A6670] shadow-[0_10px_24px_rgba(90,102,112,0.05)]">
+    <div className="mb-4 hidden rounded-[8px] border border-[#D8DDD8]/70 bg-[#FAFBF7]/62 px-4 py-3 text-[#5A6670] shadow-[0_10px_24px_rgba(90,102,112,0.05)] lg:block">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-[11px] font-semibold leading-none text-[#5A6670]/54">今天</p>
@@ -545,7 +545,7 @@ function CoupleLogo() {
   };
 
   return (
-    <div className="mt-auto flex justify-center">
+    <div className="mt-auto hidden justify-center lg:flex">
       <div className="relative aspect-[1106/849] w-52">
         <LocalPrivacyImage
           src={logoSrc}
@@ -607,8 +607,8 @@ export function LegendProgress() {
   const progress = useProgress();
 
   return (
-    <div className="flex w-fit items-center gap-3 rounded-[8px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/70 px-5 py-3 text-sm text-[#5A6670]/80 shadow-[0_10px_28px_rgba(90,102,112,0.08)] backdrop-blur">
-      <Heart className="h-4 w-4 fill-[#F5DCE0] text-[#E8B8C2]" />
+    <div className="flex w-fit items-center gap-2 sm:gap-3 rounded-[8px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/70 px-3 py-2 sm:px-5 sm:py-3 text-xs sm:text-sm text-[#5A6670]/80 shadow-[0_10px_28px_rgba(90,102,112,0.08)] backdrop-blur">
+      <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-[#F5DCE0] text-[#E8B8C2]" />
       <span>
         <strong className="font-semibold text-[#5A6670]">{progress.provinceCount}</strong> /{" "}
         {TOTAL_PROVINCES} provinces explored
@@ -742,11 +742,11 @@ export function TimelineSidebarCard() {
 
 export function StatsPanel({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <aside className="hidden h-full w-[310px] shrink-0 flex-col overflow-y-auto border-l border-dashed border-[#D8DDD8] px-7 py-7 lg:flex">
+    <aside className="flex w-full lg:h-full lg:w-[310px] shrink-0 flex-col border-t lg:border-t-0 lg:border-l border-dashed border-[#D8DDD8] px-5 py-8 sm:px-7 lg:py-7 lg:overflow-y-auto pb-24 lg:pb-8">
+      <TimelineSidebarCard />
       <DateTimeCard />
       <WeatherCard />
       {children}
-      <TimelineSidebarCard />
       <TogetherDaysCard />
       <TripCountdownCard />
       <AlbumProgressCard />

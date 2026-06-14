@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState, useRef } from "react";
-import { Camera, MapPin, RefreshCw } from "lucide-react";
+import { motion } from "framer-motion";
+import { Camera, MapPin, RefreshCw, Minimize2 } from "lucide-react";
 import { cities } from "@/data/cities";
 import { memories, type Memory } from "@/data/memories";
 import {
@@ -58,6 +59,7 @@ function PhotoImage({ photo }: Readonly<{ photo: RandomPhoto }>) {
 export default function RandomPhotoCard() {
   const [photo, setPhoto] = useState<RandomPhoto | null>(null);
   const [photos, setPhotos] = useState<RandomPhoto[]>([]);
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,17 +87,8 @@ export default function RandomPhotoCard() {
     };
 
     async function loadLocalMemories() {
-      const response = await fetchMemoriesDeduplicated().catch(() => null);
-      if (!response?.ok) {
-        if (!cancelled) applyMemories({});
-        return;
-      }
-
-      const data = (await response.json().catch(() => null)) as
-        | { memories?: LocalMemoryStore }
-        | null;
-
-      if (!cancelled) applyMemories(data?.memories ?? {});
+      const memories = await fetchMemoriesDeduplicated().catch(() => ({}));
+      if (!cancelled) applyMemories(memories);
     }
 
     window.addEventListener(memoryStoreUpdatedEvent, handleMemoryUpdate);
@@ -134,28 +127,62 @@ export default function RandomPhotoCard() {
     return () => clearInterval(timer);
   }, [photos.length]);
 
+  if (collapsed) {
+    return (
+      <motion.button
+        drag
+        dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }}
+        dragElastic={0.2}
+        dragMomentum={false}
+        onClick={() => setCollapsed(false)}
+        whileDrag={{ scale: 1.05, cursor: "grabbing" }}
+        className="absolute bottom-20 right-4 z-30 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-[#D8DDD8]/80 bg-[#FAFBF7]/86 shadow-[0_12px_28px_rgba(90,102,112,0.15)] backdrop-blur-xl transition hover:scale-105 cursor-grab active:cursor-grabbing sm:bottom-[4.75rem] sm:right-[2.5rem]"
+        aria-label="展开随机相框"
+      >
+        <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-[#E8B8C2]" />
+      </motion.button>
+    );
+  }
+
   return (
-    <aside className="absolute bottom-[4.75rem] right-[2.5rem] z-30 hidden w-[248px] rotate-[-1.5deg] xl:block">
-      <div className="rounded-[8px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/86 p-3 shadow-[0_22px_58px_rgba(90,102,112,0.15)] backdrop-blur-xl transition duration-300 hover:-translate-y-1 hover:rotate-0 hover:border-[#F5DCE0]">
+    <motion.div
+      drag
+      dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }}
+      dragElastic={0.2}
+      dragMomentum={false}
+      whileDrag={{ scale: 1.05, cursor: "grabbing" }}
+      className="absolute bottom-20 right-4 z-30 w-[160px] sm:w-[200px] xl:w-[248px] rotate-[-1.5deg] sm:bottom-[4.75rem] sm:right-[2.5rem] origin-bottom-right cursor-grab"
+    >
+      <div className="rounded-[8px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/86 p-2.5 sm:p-3 shadow-[0_22px_58px_rgba(90,102,112,0.15)] backdrop-blur-xl transition duration-300 hover:border-[#F5DCE0]">
         <div className="mb-2.5 flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[6px] border border-[#F5DCE0] bg-[#F5DCE0]/62 text-[#E8B8C2] shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-              <Camera className="h-4 w-4" />
+            <span className="grid h-6 w-6 sm:h-8 sm:w-8 shrink-0 place-items-center rounded-[6px] border border-[#F5DCE0] bg-[#F5DCE0]/62 text-[#E8B8C2] shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+              <Camera className="h-3 w-3 sm:h-4 sm:w-4" />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[#5A6670]">随机相框</p>
-              <p className="truncate text-xs font-medium text-[#5A6670]/48">点照片回到那座城</p>
+              <p className="truncate text-xs sm:text-sm font-semibold text-[#5A6670]">随机相框</p>
+              <p className="hidden sm:block truncate text-xs font-medium text-[#5A6670]/48">点照片回到那座城</p>
             </div>
           </div>
-          <button
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-[#A8C8DC] transition hover:bg-[#D6E8F0]/48 hover:text-[#5A6670]"
-            type="button"
-            onClick={shufflePhoto}
-            disabled={!photo}
-            aria-label="换一张随机照片"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              className="grid h-6 w-6 sm:h-8 sm:w-8 shrink-0 place-items-center rounded-full text-[#A8C8DC] transition hover:bg-[#D6E8F0]/48 hover:text-[#5A6670]"
+              type="button"
+              onClick={shufflePhoto}
+              disabled={!photo}
+              aria-label="换一张随机照片"
+            >
+              <RefreshCw className="h-3 w-3 sm:h-4 sm:w-4" />
+            </button>
+            <button
+              className="grid h-6 w-6 sm:h-8 sm:w-8 shrink-0 place-items-center rounded-full text-[#A8C8DC] transition hover:bg-[#D6E8F0]/48 hover:text-[#5A6670]"
+              type="button"
+              onClick={() => setCollapsed(true)}
+              aria-label="收起随机相框"
+            >
+              <Minimize2 className="h-3 w-3 sm:h-4 sm:w-4" />
+            </button>
+          </div>
         </div>
 
         {photo ? (
@@ -168,16 +195,16 @@ export default function RandomPhotoCard() {
               <PhotoImage photo={photo} />
               <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#344451]/42 to-transparent opacity-80 transition group-hover:opacity-55" />
             </div>
-            <div className="mt-3 flex items-start gap-2.5">
-              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-[6px] border border-[#D6E8F0] bg-[#D6E8F0]/48 text-[#A8C8DC]">
-                <MapPin className="h-3.5 w-3.5" />
+            <div className="mt-2 sm:mt-3 flex items-start gap-1.5 sm:gap-2.5">
+              <span className="mt-0.5 grid h-4 w-4 sm:h-6 sm:w-6 shrink-0 place-items-center rounded sm:rounded-[6px] border border-[#D6E8F0] bg-[#D6E8F0]/48 text-[#A8C8DC]">
+                <MapPin className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" />
               </span>
               <div className="min-w-0">
-                <p className="truncate text-[13px] font-semibold leading-5 text-[#5A6670]">
+                <p className="truncate text-[11px] sm:text-[13px] font-semibold leading-relaxed sm:leading-5 text-[#5A6670]">
                   {photo.city}
-                  <span className="ml-1.5 text-xs font-normal text-[#5A6670]/48">{photo.date}</span>
+                  <span className="ml-1 sm:ml-1.5 text-[10px] sm:text-xs font-normal text-[#5A6670]/48">{photo.date}</span>
                 </p>
-                <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-[#5A6670]/58">{photo.text}</p>
+                <p className="hidden sm:-webkit-box mt-0.5 line-clamp-1 text-xs leading-5 text-[#5A6670]/58">{photo.text}</p>
               </div>
             </div>
           </Link>
@@ -193,6 +220,6 @@ export default function RandomPhotoCard() {
           </div>
         )}
       </div>
-    </aside>
+    </motion.div>
   );
 }

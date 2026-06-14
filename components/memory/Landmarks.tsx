@@ -9,6 +9,7 @@ import { readCompressedImageDataUrl } from "@/utils/imageUtils";
 import { landmarkPhotoMaxDimension, landmarkPhotoQuality, type CityAssetStore } from "@/components/province/Shared";
 import { LocalPrivacyImg } from "@/components/LocalPrivacyImage";
 import { writeAdminMode } from "@/data/adminMode";
+import { readCityAssets, writeCityAsset, deleteCityAsset } from "@/lib/client/storage";
 
 export default function LandmarksPage() {
   const isAdmin = useAdminMode();
@@ -23,11 +24,8 @@ export default function LandmarksPage() {
   const ITEMS_PER_PAGE = 9;
 
   useEffect(() => {
-    fetch("/api/city-assets")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.assets) setCityAssets(data.assets);
-      })
+    readCityAssets()
+      .then((assets) => setCityAssets(assets))
       .finally(() => setLoading(false));
   }, []);
 
@@ -61,20 +59,8 @@ export default function LandmarksPage() {
         quality: landmarkPhotoQuality,
       });
 
-      const response = await fetch("/api/city-assets", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cityId, image: dataUrl }),
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        writeAdminMode(false);
-        throw new Error("Admin session expired");
-      }
-      if (!response.ok) throw new Error("Failed to save city asset");
-
-      const data = await response.json();
-      setCityAssets(data.assets);
+      const assets = await writeCityAsset(cityId, dataUrl);
+      setCityAssets(assets);
     } catch {
       alert("保存地标失败，请重试");
     } finally {
@@ -93,20 +79,8 @@ export default function LandmarksPage() {
 
     setSavingCityId(cityId);
     try {
-      const response = await fetch("/api/city-assets", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cityId }),
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        writeAdminMode(false);
-        throw new Error("Admin session expired");
-      }
-      if (!response.ok) throw new Error("Failed to delete city asset");
-
-      const data = await response.json();
-      setCityAssets(data.assets);
+      const assets = await deleteCityAsset(cityId);
+      setCityAssets(assets);
     } catch {
       alert("删除失败，请重试");
     } finally {

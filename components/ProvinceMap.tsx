@@ -2,13 +2,14 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Minus, Plus, RotateCcw } from "lucide-react";
+import { Minus, Plus, RotateCcw, List, X } from "lucide-react";
 import { type City, getCitiesByProvince, cityFallbackSprite } from "@/data/cities";
 import { type Memory, getLatestMemory, moodConfig, sortMemoriesByTime } from "@/data/memories";
 import { type LocalMemoryStore, getLitCityIds, memoryStoreUpdatedEvent } from "@/data/progress";
 import type { Province } from "@/data/provinces";
 import { useAdminMode } from "@/hooks/useAdminMode";
 import { makeProjectionForProvince, makePath, chinaFeatures, provinceIdOf } from "@/lib/geo";
+import { readCityAssets } from "@/lib/client/storage";
 import { 
   type MapCamera, type DragState, type CityAssetStore, type CardAnchor,
   colors, spring, memoryCardWidth, memoryCardGap, memoryCardMaxHeight, cityListPanelWidth,
@@ -165,11 +166,13 @@ const getMarkerLayout = (city: City, selected: boolean) => {
 export default function ProvinceMap({ province, width = 1120, height = 760 }: ProvinceMapProps) {
   const isAdmin = useAdminMode();
   const frameRef = useRef<HTMLDivElement>(null);
-  const nudgeTimeoutRef = useRef<BrowserTimeout | null>(null);
+  const nudgeTimeoutRef = useRef<number | null>(null);
+  const pinchRef = useRef<{ dist: number }>({ dist: 0 });
   const localMemoriesRef = useRef<LocalMemoryStore>({});
   const cameraRef = useRef<MapCamera>({ scale: 1, x: 0, y: 0 });
   const dragStateRef = useRef<DragState | null>(null);
   const dragMovedRef = useRef(false);
+  const activePointersRef = useRef(0);
   const [selectedCityId, setSelectedCityId] = useState<string | null>(null);
   const [nudgedCityId, setNudgedCityId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -178,6 +181,7 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
   const [isLoading, setIsLoading] = useState(true);
   const [cityAssets, setCityAssets] = useState<CityAssetStore>({});
   const [camera, setCameraState] = useState<MapCamera>({ scale: 1, x: 0, y: 0 });
+  const [isCityListOpen, setIsCityListOpen] = useState(false);
   const provinceCities = useMemo(() => getCitiesByProvince(province.id), [province.id]);
   const litCityIds = useMemo(() => getLitCityIds(localMemories), [localMemories]);
   const selectedCity = provinceCities.find((city) => city.id === selectedCityId) ?? null;
@@ -232,21 +236,14 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
     let cancelled = false;
 
     async function loadLocalState() {
-      const [memoryResponse, assetResponse] = await Promise.all([
-        fetchMemoriesDeduplicated().catch(() => null),
-        fetch("/api/city-assets", { cache: "no-store" }).catch(() => null),
+      const [memories, assets] = await Promise.all([
+        fetchMemoriesDeduplicated().catch(() => ({})),
+        readCityAssets().catch(() => ({})),
       ]);
 
-      const memoryData = (await memoryResponse?.json().catch(() => null)) as
-        | { memories?: LocalMemoryStore }
-        | null;
-      const assetData = (await assetResponse?.json().catch(() => null)) as
-        | { assets?: CityAssetStore }
-        | null;
-
       if (cancelled) return;
-      if (memoryData?.memories) setLocalMemories(memoryData.memories);
-      if (assetData?.assets) setCityAssets(assetData.assets);
+      setLocalMemories(memories);
+      setCityAssets(assets);
       setIsLoading(false);
     }
 
@@ -382,6 +379,7 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
   const handleSelectCity = (cityId: string, lit: boolean) => {
     const city = provinceCities.find((candidate) => candidate.id === cityId);
     setSelectedCityId(cityId);
+    setIsCityListOpen(false);
     if (city) focusCity(city);
     if (!lit) {
       setNudgedCityId(cityId);
@@ -440,6 +438,30 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
     zoomAt(centerX, centerY, delta);
   };
 
+  const panAndZoom = (clientX: number, clientY: number, zoomDelta: number, panDx: number, panDy: number) => {
+    const frame = frameRef.current;
+    if (!frame) return;
+
+    const rect = frame.getBoundingClientRect();
+    const pointerX = (clientX - rect.left) / frameScale;
+    const pointerY = (clientY - rect.top) / frameScale;
+
+    setCamera((current) => {
+      const panX = current.x + panDx;
+      const panY = current.y + panDy;
+
+      const nextScale = clampZoom(current.scale * zoomDelta);
+      const mapX = (pointerX - panX) / current.scale;
+      const mapY = (pointerY - panY) / current.scale;
+
+      return {
+        scale: nextScale,
+        x: pointerX - mapX * nextScale,
+        y: pointerY - mapY * nextScale,
+      };
+    });
+  };
+
   const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     // Note: wheel events in React are passive, so preventDefault is ignored.
     const delta = event.deltaY < 0 ? 1.12 : 0.88;
@@ -447,6 +469,13 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current++;
+    if (activePointersRef.current > 1) {
+      dragStateRef.current = null;
+      setDragging(false);
+      return;
+    }
+
     const target = event.target as HTMLElement;
     if (target.closest("button, article, aside")) return;
 
@@ -462,6 +491,8 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (activePointersRef.current > 1) return;
+
     const dragState = dragStateRef.current;
     if (!dragState || dragState.pointerId !== event.pointerId) return;
 
@@ -478,6 +509,7 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
   };
 
   const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    activePointersRef.current = Math.max(0, activePointersRef.current - 1);
     if (dragStateRef.current?.pointerId === event.pointerId) {
       dragStateRef.current = null;
       setDragging(false);
@@ -502,6 +534,29 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
         }
         const target = event.target as HTMLElement;
         if (!target.closest("button, article")) setSelectedCityId(null);
+      }}
+      onTouchStart={(e) => {
+        if (e.touches.length === 2) {
+          const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+          pinchRef.current = { dist, cx, cy } as any;
+        }
+      }}
+      onTouchMove={(e) => {
+        if (e.touches.length === 2) {
+          const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+          const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+          
+          const delta = dist / pinchRef.current.dist;
+          const dx = (cx - (pinchRef.current as any).cx) / frameScale;
+          const dy = (cy - (pinchRef.current as any).cy) / frameScale;
+
+          pinchRef.current = { dist, cx, cy } as any;
+          
+          panAndZoom(cx, cy, delta, dx, dy);
+        }
       }}
     >
       <div
@@ -593,48 +648,70 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
         </motion.div>
       </div>
 
-      <div
-        className="absolute left-3 top-3 z-40 flex items-center gap-2 rounded-[8px] border border-[#D8DDD8]/85 bg-[#FAFBF7]/86 p-2 shadow-[0_10px_28px_rgba(90,102,112,0.08)] backdrop-blur"
+      <motion.div
+        drag
+        dragMomentum={false}
+        style={{ touchAction: "none" }}
+        className="absolute right-4 bottom-8 z-40 flex flex-col items-center gap-1.5 rounded-[8px] border border-[#D8DDD8]/85 bg-[#FAFBF7]/86 p-1.5 shadow-[0_10px_28px_rgba(90,102,112,0.08)] backdrop-blur cursor-grab active:cursor-grabbing"
         onClick={(event) => event.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         <button
-          className="grid h-9 w-9 place-items-center rounded-[7px] text-[#5A6670] transition hover:bg-[#D6E8F0]/45"
-          type="button"
-          onClick={() => zoomFromCenter(0.88)}
-          aria-label="缩小地图"
-        >
-          <Minus className="h-4 w-4" />
-        </button>
-        <span className="min-w-12 text-center text-xs font-semibold text-[#5A6670]/70">
-          {Math.round(camera.scale * 100)}%
-        </span>
-        <button
-          className="grid h-9 w-9 place-items-center rounded-[7px] text-[#5A6670] transition hover:bg-[#F5DCE0]/55"
+          className="grid h-8 w-8 place-items-center rounded-[7px] text-[#5A6670] transition hover:bg-[#F5DCE0]/55"
           type="button"
           onClick={() => zoomFromCenter(1.12)}
           aria-label="放大地图"
         >
           <Plus className="h-4 w-4" />
         </button>
+        <span className="py-0.5 text-center text-[10px] font-semibold text-[#5A6670]/70">
+          {Math.round(camera.scale * 100)}%
+        </span>
         <button
-          className="grid h-9 w-9 place-items-center rounded-[7px] text-[#5A6670] transition hover:bg-[#D4E8D0]/55"
+          className="grid h-8 w-8 place-items-center rounded-[7px] text-[#5A6670] transition hover:bg-[#D6E8F0]/45"
+          type="button"
+          onClick={() => zoomFromCenter(0.88)}
+          aria-label="缩小地图"
+        >
+          <Minus className="h-4 w-4" />
+        </button>
+        <button
+          className="mt-1 grid h-7 w-7 place-items-center rounded-[6px] text-[#5A6670]/70 transition hover:bg-[#D4E8D0]/55 hover:text-[#5A6670]"
           type="button"
           onClick={resetCamera}
           aria-label="重置地图视角"
         >
-          <RotateCcw className="h-4 w-4" />
+          <RotateCcw className="h-3.5 w-3.5" />
         </button>
-      </div>
+      </motion.div>
 
-      <aside
-        className="absolute right-0 top-3 z-40 w-[230px] rounded-[8px] border border-[#D8DDD8]/85 bg-[#FAFBF7]/90 p-3 shadow-[0_16px_34px_rgba(90,102,112,0.10)] backdrop-blur"
-        onClick={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-        onPointerMove={(event) => event.stopPropagation()}
-        onWheel={(event) => event.stopPropagation()}
-        aria-label={`${province.name}城市列表`}
+      <motion.div 
+        drag
+        dragMomentum={false}
+        style={{ touchAction: "none" }}
+        className="absolute right-4 top-4 z-50 flex flex-col items-end gap-2 cursor-grab active:cursor-grabbing"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-2 flex items-baseline justify-between gap-2">
+        <div className="lg:hidden">
+          <button
+          onClick={(e) => { e.stopPropagation(); setIsCityListOpen(!isCityListOpen); }}
+          className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-[#D8DDD8]/85 bg-[#FAFBF7]/90 shadow-[0_10px_28px_rgba(90,102,112,0.08)] backdrop-blur text-[#5A6670] transition hover:bg-[#D6E8F0]/45"
+          aria-label={isCityListOpen ? "关闭城市列表" : "展开城市列表"}
+        >
+          {isCityListOpen ? <X className="h-5 w-5" /> : <List className="h-5 w-5" />}
+        </button>
+        </div>
+
+        <aside
+          className={`w-[200px] sm:w-[230px] rounded-[8px] border border-[#D8DDD8]/85 bg-[#FAFBF7]/90 p-3 shadow-[0_16px_34px_rgba(90,102,112,0.10)] backdrop-blur transition-all duration-300 cursor-auto ${isCityListOpen ? 'opacity-100 translate-y-0 visible' : 'opacity-0 -translate-y-4 invisible hidden lg:opacity-100 lg:translate-y-0 lg:visible lg:block'}`}
+          onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerMove={(event) => event.stopPropagation()}
+          onWheel={(event) => event.stopPropagation()}
+          aria-label={`${province.name}城市列表`}
+        >
+          <div className="mb-2 flex items-baseline justify-between gap-2">
           <h2 className="text-sm font-semibold text-[#5A6670]">城市</h2>
           <span className="text-xs font-medium text-[#5A6670]/54">{provinceCities.length}</span>
         </div>
@@ -674,8 +751,9 @@ export default function ProvinceMap({ province, width = 1120, height = 760 }: Pr
               </button>
             );
           })}
-        </div>
-      </aside>
+          </div>
+        </aside>
+      </motion.div>
 
       {selectedCity && (
         <CityPanel

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { memoryStoreUpdatedEvent, type LocalMemoryStore } from "@/data/progress";
+import { readMemories } from "@/lib/client/storage";
 
 export const useMemories = () => {
   const [memories, setMemories] = useState<LocalMemoryStore>({});
@@ -14,19 +15,16 @@ export const useMemories = () => {
     };
 
     async function loadLocalMemories() {
-      const response = await fetch("/api/memories", { cache: "no-store" }).catch(() => null);
-      if (!response?.ok) {
-        if (!cancelled) setMemories({});
-        return;
+      try {
+        const data = await readMemories();
+        if (!cancelled) {
+          setMemories(data);
+        }
+      } catch {
+        if (!cancelled) {
+          setMemories({});
+        }
       }
-
-      const data = (await response.json().catch(() => null)) as
-        | { memories?: LocalMemoryStore }
-        | null;
-
-      if (cancelled) return;
-
-      setMemories(data?.memories ?? {});
     }
 
     window.addEventListener(memoryStoreUpdatedEvent, handleMemoryUpdate);

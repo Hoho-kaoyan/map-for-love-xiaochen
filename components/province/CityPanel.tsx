@@ -325,7 +325,6 @@ export default function CityPanel({
       dragControls={dragControls}
       dragMomentum={false}
       className="absolute inset-0 m-auto h-fit z-50 w-full max-w-[340px] sm:w-[380px] sm:max-w-none md:w-[420px] pointer-events-auto"
-      style={{ touchAction: "none" }}
     >
       <motion.div
         className="flex flex-col overflow-y-auto rounded-[10px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/90 shadow-[0_22px_56px_rgba(90,102,112,0.16)] backdrop-blur-xl max-h-[min(820px,calc(100vh-110px))] w-full p-6"
@@ -340,10 +339,12 @@ export default function CityPanel({
           onPointerDown={(e) => dragControls.start(e)}
         >
         <div>
-          <h2 className="flex items-center gap-2 text-xl font-semibold">
-            <span className={`h-3 w-3 rounded-sm ${isLit ? "bg-[#E8B8C2]" : "bg-[#D8DDD8]"}`} />
-            {city.name}
-            <span className="text-sm font-normal text-[#5A6670]/62">{city.nameEn}</span>
+          <h2 className="flex flex-wrap items-center gap-2 text-xl font-semibold leading-snug">
+            <span className={`h-3 w-3 shrink-0 rounded-sm ${isLit ? "bg-[#E8B8C2]" : "bg-[#D8DDD8]"}`} />
+            <span className="break-words">{city.name}</span>
+            {city.nameEn !== city.name && (
+              <span className="text-sm font-normal text-[#5A6670]/62">{city.nameEn}</span>
+            )}
           </h2>
           <p className="mt-3 text-sm text-[#5A6670]/76">
             {memory?.date ?? "添加回忆后点亮"}

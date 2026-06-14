@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { setPassword as savePasswordClient } from '@/lib/client/auth';
 
 interface PasswordSectionProps {
   isAdmin: boolean;
@@ -35,14 +36,26 @@ export function PasswordSection({
     }
 
     setIsWorking(true);
-    const response = await fetch("/api/auth/password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ target, newPassword: trimmed }),
-    }).catch(() => null);
+    // Try server-side password change (desktop), fall back to client-side (mobile)
+    let ok = false;
+    try {
+      const response = await fetch("/api/auth/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ target, newPassword: trimmed }),
+      });
+      ok = response.ok;
+      if (!ok && (response.status === 404 || response.status === 405)) {
+        throw new Error("API not available");
+      }
+    } catch {
+      // API not available — save password client-side
+      savePasswordClient(target, trimmed);
+      ok = true;
+    }
     setIsWorking(false);
 
-    if (response?.ok) {
+    if (ok) {
       setStatus(target === "site" ? "进入密码已修改" : "管理员密码已修改");
       if (target === "site") setNewEntryPassword("");
       else setNewAdminPassword("");

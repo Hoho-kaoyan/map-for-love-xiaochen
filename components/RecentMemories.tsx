@@ -70,20 +70,9 @@ export default function RecentMemories() {
     };
 
     async function loadLocalMemories() {
-      const response = await fetchMemoriesDeduplicated().catch(() => null);
-      if (!response?.ok) {
-        if (!cancelled) setRandomMemories(pickRandomMemories(collectMemories({})));
-        return;
-      }
-
-      const data = (await response.json().catch(() => null)) as
-        | { memories?: LocalMemoryStore }
-        | null;
-
+      const memories = await fetchMemoriesDeduplicated().catch(() => ({}));
       if (cancelled) return;
-
-      const nextLocalMemories = data?.memories ?? {};
-      setRandomMemories(pickRandomMemories(collectMemories(nextLocalMemories)));
+      setRandomMemories(pickRandomMemories(collectMemories(memories)));
     }
 
     window.addEventListener(memoryStoreUpdatedEvent, handleMemoryUpdate);

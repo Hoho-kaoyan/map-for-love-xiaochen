@@ -130,14 +130,8 @@ export default function MemoryArchive() {
     };
 
     async function loadLocalMemories() {
-      const response = await fetchMemoriesDeduplicated().catch(() => null);
-      if (!response?.ok) return;
-
-      const data = (await response.json().catch(() => null)) as
-        | { memories?: LocalMemoryStore }
-        | null;
-
-      if (!cancelled && data?.memories) setLocalMemories(data.memories);
+      const memories = await fetchMemoriesDeduplicated().catch(() => ({}));
+      if (!cancelled) setLocalMemories(memories);
     }
 
     window.addEventListener(memoryStoreUpdatedEvent, handleMemoryUpdate);

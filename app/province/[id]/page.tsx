@@ -53,11 +53,11 @@ export default async function ProvincePage({ params }: ProvincePageProps) {
           <div aria-hidden="true" />
         </header>
 
-        <section className="relative z-10 flex flex-1 items-center justify-center pb-28 pt-6 sm:pb-16">
+        <section className="relative z-10 flex min-h-0 flex-1 items-center justify-center pb-24 pt-4 sm:pb-16 sm:pt-6">
           <ProvinceMap province={province} />
         </section>
 
-        <div className="absolute bottom-8 left-6 z-40 rounded-[8px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/76 px-5 py-4 text-sm text-[#5A6670]/78 shadow-[0_10px_28px_rgba(90,102,112,0.08)] backdrop-blur sm:left-9">
+        <div className="absolute bottom-6 left-4 z-40 rounded-[8px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/76 px-4 py-3 text-sm text-[#5A6670]/78 shadow-[0_10px_28px_rgba(90,102,112,0.08)] backdrop-blur sm:bottom-8 sm:left-9 sm:px-5 sm:py-4">
           <div className="flex items-center gap-3">
             <span className="h-3.5 w-3.5 rounded-full bg-[#E8B8C2] shadow-[0_0_10px_rgba(232,184,194,0.55)]" />
             <span>已探索</span>

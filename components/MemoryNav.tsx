@@ -17,7 +17,9 @@ import {
   Image as ImageIcon,
   PlaneTakeoff,
   CloudSun,
+  Menu,
 } from "lucide-react";
+import { MobileBottomNav } from "./MobileBottomNav";
 
 const githubUrl = "https://github.com/zkeyoned/map-of-us-template";
 const devUrl = "https://github.com/WyankinzZ/map-for-everyone";
@@ -43,11 +45,11 @@ const navItems = [
   href: string;
 }>;
 
-export function MemorySidebar({ active }: Readonly<{ active: MemoryNavKey }>) {
+export function MemorySidebar({ active, className, onClose }: Readonly<{ active: MemoryNavKey; className?: string; onClose?: () => void }>) {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   return (
-    <aside className="hidden min-h-screen w-[260px] shrink-0 border-r border-[#D8DDD8]/78 bg-[#FAFBF7]/78 px-5 py-8 shadow-[12px_0_34px_rgba(90,102,112,0.04)] backdrop-blur lg:flex lg:flex-col">
+    <aside className={className ?? "hidden h-[100dvh] w-[260px] shrink-0 border-r border-[#D8DDD8]/78 bg-[#FAFBF7]/78 px-5 py-8 shadow-[12px_0_34px_rgba(90,102,112,0.04)] backdrop-blur lg:flex lg:flex-col lg:overflow-y-auto lg:overscroll-contain lg:touch-pan-y"}>
       <div className="flex-1">
         <div className="text-center">
           <div className="mx-auto grid h-14 w-14 place-items-center">
@@ -65,6 +67,7 @@ export function MemorySidebar({ active }: Readonly<{ active: MemoryNavKey }>) {
             return (
               <Link
                 key={item.key}
+                onClick={onClose}
                 className={`flex w-full items-center gap-3 rounded-[8px] border px-4 py-3 text-sm font-medium transition ${selected
                   ? "border-[#F5DCE0] bg-[#F5DCE0]/52 text-[#E8B8C2]"
                   : "border-transparent text-[#5A6670]/72 hover:border-[#D8DDD8] hover:bg-[#FAFBF7]"
@@ -194,15 +197,57 @@ export function MemoryPageShell({
   active: MemoryNavKey;
   children: ReactNode;
 }>) {
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#FAFBF7] text-[#5A6670]">
+    <main className="relative flex min-h-[100dvh] flex-col overflow-hidden bg-[#FAFBF7] text-[#5A6670]">
       <div className="map-mist-band" aria-hidden="true" />
       <span className="absolute left-[38%] top-[9%] h-2 w-2 bg-[#F5DCE0]" aria-hidden="true" />
       <span className="absolute right-[17%] top-[15%] h-2 w-2 bg-[#D6E8F0]" aria-hidden="true" />
-      <div className="relative z-10 flex min-h-screen">
-        <MemorySidebar active={active} />
-        <section className="min-w-0 flex-1 px-6 py-8 sm:px-10">{children}</section>
+      
+      <div className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b border-[#D8DDD8]/78 bg-[#FAFBF7]/90 px-4 backdrop-blur lg:hidden">
+        <div className="flex items-center gap-2">
+          <Heart className="h-5 w-5 fill-[#F5DCE0] text-[#E8B8C2]" />
+          <span className="font-semibold text-[#5A6670]">我们的地图</span>
+        </div>
+        <button onClick={() => setIsMobileNavOpen(true)} className="p-2">
+          <Menu className="h-5 w-5 text-[#5A6670]" />
+        </button>
       </div>
+
+      <div className="relative z-10 flex min-h-0 flex-1 overflow-hidden">
+        <MemorySidebar active={active} />
+        
+        <AnimatePresence>
+          {isMobileNavOpen && (
+            <>
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMobileNavOpen(false)}
+                className="fixed inset-0 z-[110] bg-[#5A6670]/20 backdrop-blur-sm lg:hidden"
+              />
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                className="fixed inset-y-0 left-0 z-[120] lg:hidden flex flex-col"
+              >
+                <MemorySidebar 
+                  active={active} 
+                  className="flex h-full w-[260px] shrink-0 flex-col overflow-y-auto overscroll-contain touch-pan-y border-r border-[#D8DDD8]/78 bg-[#FAFBF7] px-5 py-8" 
+                  onClose={() => setIsMobileNavOpen(false)} 
+                />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        <section className="min-w-0 flex-1 overflow-y-auto px-4 pt-6 pb-24 sm:px-10 lg:py-8">{children}</section>
+      </div>
+      <MobileBottomNav />
     </main>
   );
 }

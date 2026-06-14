@@ -1,12 +1,16 @@
 import type { NextConfig } from "next";
 
+const isMobile = process.env.BUILD_TARGET === "mobile";
+
 const nextConfig: NextConfig = {
-  output: "standalone",
-  outputFileTracingExcludes: {
+  output: isMobile ? "export" : "standalone",
+  trailingSlash: isMobile,
+  outputFileTracingExcludes: isMobile ? undefined : {
     "/*": ["data/*.private.json"],
   },
-  serverExternalPackages: ["ali-oss"],
+  serverExternalPackages: isMobile ? undefined : ["ali-oss"],
   images: {
+    unoptimized: isMobile,
     remotePatterns: [
       { protocol: "https", hostname: "**.aliyuncs.com" },
       { protocol: "http", hostname: "**.aliyuncs.com" },

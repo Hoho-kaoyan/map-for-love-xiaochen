@@ -17,6 +17,14 @@ const legacyDatabaseVersion = 1;
 const legacySettingsKey = "mapofus:settings";
 const migrationDoneKey = "mapofus:loginPhotos:migratedToServerV2";
 
+const isDesktop = () => {
+  if (typeof window === "undefined") return true;
+  return Boolean(
+    (window as unknown as Record<string, unknown>).electronAPI ||
+    navigator.userAgent.includes("Electron"),
+  );
+};
+
 const readLegacyIndexedDb = async (): Promise<Record<string, string>> => {
   if (typeof window === "undefined" || !window.indexedDB) return {};
 
@@ -182,6 +190,12 @@ const ensureMigrated = () => {
 };
 
 const fetchServerStore = async (): Promise<LoginPhotoServerStore> => {
+  if (!isDesktop()) {
+    const { readLoginPhotos: readFromOss } = await import("@/lib/client/storage");
+    const photos = await readFromOss();
+    return { photos, texts: {} };
+  }
+
   const response = await fetch(apiEndpoint, { cache: "no-store" });
   if (!response.ok) throw new Error(`readLoginPhotos failed (${response.status})`);
   const data = (await response.json()) as Partial<LoginPhotoServerStore>;
@@ -203,6 +217,10 @@ export const readLoginPhotoStore = async (): Promise<LoginPhotoServerStore> => {
 };
 
 export const readLoginPhotos = async (): Promise<Record<string, string>> => {
+  if (!isDesktop()) {
+    const { readLoginPhotos: readFromOss } = await import("@/lib/client/storage");
+    return readFromOss();
+  }
   const { photos } = await readLoginPhotoStore();
   return photos;
 };
@@ -218,6 +236,12 @@ export const readLoginPhoto = async (slotId: string): Promise<string | undefined
 };
 
 export const writeLoginPhoto = async (slotId: string, image: string): Promise<void> => {
+  if (!isDesktop()) {
+    const { writeLoginPhoto: writeToOss } = await import("@/lib/client/storage");
+    await writeToOss(slotId, image);
+    return;
+  }
+
   const response = await fetch(apiEndpoint, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -242,6 +266,12 @@ export const writeLoginPhotoText = async (slotId: string, text: LoginPhotoText):
 };
 
 export const deleteLoginPhoto = async (slotId: string): Promise<void> => {
+  if (!isDesktop()) {
+    const { deleteLoginPhoto: deleteFromOss } = await import("@/lib/client/storage");
+    await deleteFromOss(slotId);
+    return;
+  }
+
   const response = await fetch(apiEndpoint, {
     method: "DELETE",
     headers: { "Content-Type": "application/json" },

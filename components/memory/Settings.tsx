@@ -23,6 +23,8 @@ import { LogoSection } from './LogoSection';
 import { BackupSection } from './BackupSection';
 import { BatchImportPhotosSection } from './BatchImportPhotosSection';
 import { OssSection } from './OssSection';
+import { readMemories } from '@/lib/client/storage';
+import { validateAdminPassword, clearSiteSession } from '@/lib/client/auth';
 
 export default function SettingsPage() {
   const isAdmin = useAdminMode();
@@ -37,10 +39,7 @@ export default function SettingsPage() {
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const loadMemoryCount = async () => {
-    const response = await fetch("/api/memories", { cache: "no-store" }).catch(() => null);
-    if (!response?.ok) return {};
-    const data = (await response.json().catch(() => null)) as { memories?: LocalMemoryStore } | null;
-    const memories = data?.memories ?? {};
+    const memories = await readMemories().catch(() => ({}));
     setMemoryCount(Object.values(memories).flat().length);
     return memories;
   };
@@ -81,13 +80,32 @@ export default function SettingsPage() {
   }, []);
 
   const unlockAdmin = async () => {
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "admin", password: adminCode }),
-    }).catch(() => null);
+    const trimmed = adminCode.trim();
+    if (!trimmed) {
+      setAdminError("请输入管理员密码");
+      return;
+    }
 
-    if (response?.ok) {
+    // Try server-side auth first (desktop Electron), fall back to client-side (mobile static export)
+    let ok = false;
+    let statusCode = 0;
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "admin", password: trimmed }),
+      });
+      ok = response.ok;
+      statusCode = response.status;
+      if (!ok && (response.status === 404 || response.status === 405)) {
+        throw new Error("API not available");
+      }
+    } catch {
+      // API not available — use client-side password validation
+      ok = validateAdminPassword(trimmed).ok;
+    }
+
+    if (ok) {
       writeAdminMode(true);
       setAdminCode("");
       setAdminError("");
@@ -95,15 +113,17 @@ export default function SettingsPage() {
       return;
     }
 
-    setAdminError(response?.status === 503 ? "管理员认证未配置" : "密码不对");
+    setAdminError(statusCode === 503 ? "管理员认证未配置" : "密码不对");
   };
 
   const lockAdmin = () => {
+    // Try server-side logout (desktop), ignore failure on mobile
     void fetch("/api/auth/login", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: "admin" }),
-    }).catch(() => null);
+    }).catch(() => {});
+    clearSiteSession();
     writeAdminMode(false);
     setAdminCode("");
     setAdminError("");
@@ -180,14 +200,16 @@ export default function SettingsPage() {
           setStatus={setStatus}
         />
 
-        <LogoSection
-          isAdmin={isAdmin}
-          appSettings={appSettings}
-          setAppSettings={setAppSettings}
-          isWorking={isWorking}
-          setIsWorking={setIsWorking}
-          setStatus={setStatus}
-        />
+        <div className="hidden lg:block">
+          <LogoSection
+            isAdmin={isAdmin}
+            appSettings={appSettings}
+            setAppSettings={setAppSettings}
+            isWorking={isWorking}
+            setIsWorking={setIsWorking}
+            setStatus={setStatus}
+          />
+        </div>
 
         <div className="rounded-[8px] border border-[#D8DDD8]/78 bg-[#FAFBF7]/76 p-5 shadow-[0_12px_28px_rgba(90,102,112,0.06)]">
           <p className="text-sm font-semibold text-[#5A6670]">本地回忆</p>

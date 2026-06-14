@@ -9,6 +9,7 @@ import { CitySearchSelect } from '@/components/shared/CitySearchSelect';
 import { readCompressedImageDataUrl } from '@/utils/imageUtils';
 import { memoryPhotoMaxDimension, memoryPhotoQuality } from '@/components/province/Shared';
 import { type MemoryMood, moodConfig } from '@/data/memories';
+import { saveMemory } from '@/lib/client/storage';
 
 interface BatchImportPhotosSectionProps {
   isAdmin: boolean;
@@ -180,31 +181,28 @@ export function BatchImportPhotosSection({
         });
         
         const memoryPayload = {
+          id: `${city.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           cityId: city.id,
+          city: city.name,
+          cityEn: city.nameEn,
           date: photo.date.replace(/-/g, '.'),
           text: `自动导入的${city.name}回忆。`,
           image: dataUrl,
           photos: [dataUrl],
-          mood: photo.mood || 'happy',
+          mood: (photo.mood || 'happy') as MemoryMood,
+          createdAt: new Date().toISOString(),
         };
 
-        const response = await fetch("/api/memories", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ memory: memoryPayload }),
-        });
+        // Use unified storage layer (works for both OSS/mobile and desktop API)
+        const result = await saveMemory(city.id, memoryPayload);
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.memories) {
-            window.dispatchEvent(new CustomEvent(memoryStoreUpdatedEvent, { detail: data.memories }));
-            setMemoryCount(Object.values(data.memories).flat().length);
-            updateStagedPhoto(photo.id, { status: 'success', errorMsg: undefined });
-            successCount++;
-          }
+        if (result.memories) {
+          window.dispatchEvent(new CustomEvent(memoryStoreUpdatedEvent, { detail: result.memories }));
+          setMemoryCount(Object.values(result.memories).flat().length);
+          updateStagedPhoto(photo.id, { status: 'success', errorMsg: undefined });
+          successCount++;
         } else {
-          const err = await response.json().catch(() => ({}));
-          updateStagedPhoto(photo.id, { status: 'error', errorMsg: err.error || '导入失败' });
+          updateStagedPhoto(photo.id, { status: 'error', errorMsg: '导入失败' });
         }
       } catch (err) {
         updateStagedPhoto(photo.id, { status: 'error', errorMsg: '网络或处理错误' });

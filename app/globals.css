@@ -410,9 +410,9 @@ button {
 
 @media (max-width: 640px) {
   .login-panel {
-    max-height: calc(100dvh - 32px);
-    width: min(326px, calc(100vw - 96px));
-    max-width: min(326px, calc(100vw - 96px));
+    max-height: 100dvh;
+    width: 100%;
+    max-width: 100%;
   }
 
   .login-code-dot {
@@ -734,7 +734,7 @@ button {
 .map-zoom-slider {
   --zoom-progress: 0%;
   width: 26px;
-  height: 88px;
+  height: 64px;
   margin: 0;
   appearance: none;
   background: transparent;

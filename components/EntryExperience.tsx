@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { ArrowRight, Camera, Delete, Heart, KeyRound, LockKeyhole, MapPinned } from "lucide-react";
+import { ArrowRight, Camera, Delete, Heart, KeyRound, LockKeyhole, MapPin, MapPinned, Maximize2, Minimize2, X } from "lucide-react";
 import { LocalPrivacyBadge, LocalPrivacyImage } from "@/components/LocalPrivacyImage";
 import {
   appSettingsUpdatedEvent,
@@ -15,6 +15,7 @@ import {
   readLoginPhotoTexts,
   readLoginPhotos,
 } from "@/data/loginPhotoStore";
+import { validateSitePassword } from "@/lib/client/auth";
 
 const passcodeLength = 4;
 const loginPhotoVersion = "placeholder-20260601";
@@ -159,6 +160,8 @@ export default function EntryExperience() {
   const [activeId, setActiveId] = useState<Stamp["id"]>("hangzhou");
   const [code, setCode] = useState("");
   const [status, setStatus] = useState<"idle" | "checking" | "wrong" | "open">("idle");
+  const [collapsed, setCollapsed] = useState(false);
+  const [previewStamp, setPreviewStamp] = useState<Stamp | null>(null);
   const pointerX = useMotionValue(0);
   const pointerY = useMotionValue(0);
   const smoothX = useSpring(pointerX, { stiffness: 80, damping: 22 });
@@ -204,18 +207,41 @@ export default function EntryExperience() {
 
   const activeStamp = loginStamps.find((stamp) => stamp.id === activeId) ?? loginStamps[0];
 
+  useEffect(() => {
+    if (loginStamps.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveId((currentId) => {
+        const currentIndex = loginStamps.findIndex((s) => s.id === currentId);
+        const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % loginStamps.length;
+        return loginStamps[nextIndex]?.id ?? currentId;
+      });
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [loginStamps]);
+
   const submitCode = async (nextCode: string) => {
     if (nextCode.length < passcodeLength || status === "checking" || status === "open") return;
 
     setStatus("checking");
 
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: "site", password: nextCode }),
-    }).catch(() => null);
+    // Try server-side auth first (desktop Electron), fall back to client-side (mobile static export)
+    let ok = false;
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mode: "site", password: nextCode }),
+      });
+      ok = response.ok;
+      if (!ok && (response.status === 404 || response.status === 405)) {
+        throw new Error("API not available");
+      }
+    } catch {
+      // API not available — use client-side password validation (mobile / static export)
+      ok = validateSitePassword(nextCode).ok;
+    }
 
-    if (response?.ok) {
+    if (ok) {
       setStatus("open");
       window.setTimeout(() => router.push("/map"), 720);
       return;
@@ -263,9 +289,9 @@ export default function EntryExperience() {
       <motion.div className="login-cloud login-cloud-b" style={{ x: reverseX }} aria-hidden="true" />
       <div className="login-grid absolute inset-0" aria-hidden="true" />
 
-      <section className="relative z-10 grid h-full min-h-0 w-full grid-cols-1 gap-3 overflow-hidden px-4 py-4 sm:px-6 lg:grid-cols-[minmax(360px,0.86fr)_minmax(520px,1.14fr)] lg:gap-5 lg:px-8">
+      <section className="relative z-10 grid h-full min-h-0 w-full grid-cols-1 overflow-hidden sm:gap-3 sm:px-6 sm:py-4 lg:grid-cols-[minmax(360px,0.86fr)_minmax(520px,1.14fr)] lg:gap-5 lg:px-8">
         <motion.div
-          className="login-panel flex min-h-0 min-w-0 max-w-full flex-col justify-between overflow-hidden rounded-[8px] border border-[#DCCFC1]/86 bg-[#FEFCF5]/74 p-4 shadow-[0_28px_80px_rgba(91,71,50,0.12)] backdrop-blur-xl sm:p-5"
+          className="login-panel flex min-h-0 min-w-0 max-w-full flex-col justify-between overflow-y-auto overflow-x-hidden border-0 border-[#DCCFC1]/86 bg-[#FEFCF5]/85 px-6 pb-8 pt-12 shadow-none backdrop-blur-xl sm:rounded-[8px] sm:border sm:bg-[#FEFCF5]/74 sm:p-5 sm:shadow-[0_28px_80px_rgba(91,71,50,0.12)]"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.58 }}
@@ -335,7 +361,7 @@ export default function EntryExperience() {
             </motion.div>
           </div>
 
-          <div className="mt-4 flex items-center justify-end gap-3">
+          <div className="mt-4 flex shrink-0 items-center justify-end gap-3">
             <button
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[8px] bg-[#273846] px-4 text-sm font-semibold text-white shadow-[0_16px_34px_rgba(39,56,70,0.18)] transition hover:-translate-y-0.5 hover:bg-[#D86F82]"
               type="button"
@@ -347,6 +373,85 @@ export default function EntryExperience() {
             </button>
           </div>
         </motion.div>
+
+        {/* Mobile Login Photo Card (Hidden on Desktop) */}
+        {collapsed ? (
+          <motion.button
+            drag
+            dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }}
+            dragElastic={0.2}
+            dragMomentum={false}
+            onClick={() => setCollapsed(false)}
+            whileDrag={{ scale: 1.05, cursor: "grabbing" }}
+            className="absolute bottom-5 left-5 z-20 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full border border-[#D8DDD8]/80 bg-[#FAFBF7]/86 shadow-[0_12px_28px_rgba(90,102,112,0.15)] backdrop-blur-xl transition hover:scale-105 cursor-grab active:cursor-grabbing lg:hidden"
+            aria-label="展开相册"
+          >
+            <Camera className="h-4 w-4 sm:h-5 sm:w-5 text-[#E8B8C2]" />
+          </motion.button>
+        ) : (
+          <motion.div
+            drag
+            dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }}
+            dragElastic={0.2}
+            dragMomentum={false}
+            whileDrag={{ scale: 1.05, cursor: "grabbing" }}
+            className="absolute bottom-5 left-5 z-20 block w-[140px] sm:w-[170px] origin-bottom-left rotate-[-1.5deg] lg:hidden cursor-grab"
+          >
+            <div className="rounded-[8px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/86 p-2.5 shadow-[0_16px_48px_rgba(90,102,112,0.12)] backdrop-blur-xl transition duration-300">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="grid h-6 w-6 shrink-0 place-items-center rounded-[6px] border border-[#F5DCE0] bg-[#F5DCE0]/62 text-[#E8B8C2]">
+                    <Camera className="h-3 w-3" />
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[#A8C8DC] transition hover:bg-[#D6E8F0]/48 hover:text-[#5A6670]"
+                    type="button"
+                    onClick={() => setCollapsed(true)}
+                    aria-label="收起相册"
+                  >
+                    <Minimize2 className="h-3 w-3" />
+                  </button>
+                </div>
+              </div>
+            <button
+              className="relative block w-full text-left aspect-[4/3] overflow-hidden rounded-[6px] bg-[#D6E8F0] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F5DCE0]"
+              onDoubleClick={() => setPreviewStamp(activeStamp)}
+              type="button"
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeStamp.id}
+                  className="absolute inset-0"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <LoginPhoto
+                    className="h-full w-full object-cover"
+                    src={activeStamp.photo}
+                    alt={activeStamp.city}
+                    fill
+                    sizes="170px"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[#344451]/40 to-transparent" />
+                </motion.div>
+              </AnimatePresence>
+            </button>
+            <div className="mt-2 flex items-start gap-1.5 pointer-events-none">
+              <span className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded border border-[#D6E8F0] bg-[#D6E8F0]/48 text-[#A8C8DC]">
+                <MapPin className="h-2.5 w-2.5" />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-semibold leading-tight text-[#5A6670]">{activeStamp.city}</p>
+                <p className="mt-0.5 truncate text-[10px] text-[#5A6670]/58">{activeStamp.label}</p>
+              </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         <motion.div
           className="relative hidden min-h-0 overflow-hidden rounded-[8px] border border-[#DCCFC1]/86 bg-[#161F27] shadow-[0_28px_80px_rgba(91,71,50,0.12)] lg:block"
@@ -469,6 +574,53 @@ export default function EntryExperience() {
           )}
         </motion.div>
       </section>
+
+      {/* Full Screen Image Preview Overlay */}
+      <AnimatePresence>
+        {previewStamp && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-[#161F27]/90 backdrop-blur-md p-4 sm:p-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <button
+              className="absolute right-4 top-4 sm:right-8 sm:top-8 z-10 grid h-10 w-10 sm:h-12 sm:w-12 place-items-center rounded-full bg-white/10 text-white/80 backdrop-blur transition hover:bg-white/20 hover:text-white"
+              onClick={() => setPreviewStamp(null)}
+              aria-label="关闭预览"
+              type="button"
+            >
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
+            </button>
+            <motion.div
+              className="relative max-w-4xl w-full"
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            >
+              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-[12px] bg-[#273846] shadow-2xl">
+                <LoginPhoto
+                  className="h-full w-full object-contain"
+                  src={previewStamp.photo}
+                  alt={previewStamp.city}
+                  fill
+                  sizes="100vw"
+                  priority
+                />
+              </div>
+              <div className="absolute -bottom-16 left-0 right-0 text-center">
+                <p className="text-xl sm:text-2xl font-semibold text-white shadow-black drop-shadow-md">
+                  {previewStamp.city}
+                </p>
+                <p className="mt-1 text-sm sm:text-base text-white/70 shadow-black drop-shadow-md">
+                  {previewStamp.label}
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

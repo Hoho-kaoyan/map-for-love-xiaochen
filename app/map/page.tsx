@@ -3,6 +3,7 @@ import ChinaMap, { SouthChinaSeaInset } from "@/components/ChinaMap";
 import BackToLoginButton from "@/components/BackToLoginButton";
 import { LegendProgress, ProgressBadge, StatsPanel } from "@/components/HomeProgress";
 import RandomPhotoCard from "@/components/RandomPhotoCard";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 function BrandMark() {
   return (
@@ -57,16 +58,7 @@ function PixelSparkle({ className }: Readonly<{ className: string }>) {
 function Legend() {
   return (
     <div className="space-y-5">
-      <div className="w-fit rounded-[8px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/70 px-5 py-4 text-sm text-[#5A6670]/78 shadow-[0_10px_28px_rgba(90,102,112,0.08)] backdrop-blur">
-        <div className="flex items-center gap-3">
-          <span className="h-4 w-4 rounded-[2px] border border-[#E8B8C2] bg-[#F5DCE0] shadow-[0_0_10px_rgba(232,184,194,0.42)]" />
-          <span>已点亮</span>
-        </div>
-        <div className="mt-3 flex items-center gap-3">
-          <span className="h-4 w-4 rounded-[2px] border border-[#C8CEC8] bg-[#D8DDD8]/55" />
-          <span>未点亮</span>
-        </div>
-      </div>
+
       <LegendProgress />
     </div>
   );
@@ -74,7 +66,7 @@ function Legend() {
 
 export default function MapPage() {
   return (
-    <main className="relative h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#FAFBF7] text-[#5A6670]">
+    <main className="relative h-[100dvh] max-h-[100dvh] overflow-y-auto overflow-x-hidden lg:overflow-hidden bg-[#FAFBF7] text-[#5A6670]">
       <div className="map-mist-band" aria-hidden="true" />
       <Cloud src="/sprites/decorations/cloud-medium.png" className="left-[18%] top-[12%] w-28" />
       <Cloud src="/sprites/decorations/cloud-large.png" className="left-[43%] top-[11%] w-36" />
@@ -87,13 +79,13 @@ export default function MapPage() {
       <span className="absolute left-[28%] bottom-[7%] h-2 w-2 bg-[#D4E8D0]" aria-hidden="true" />
       <span className="absolute right-[11%] top-[19%] h-2 w-2 bg-[#D6E8F0]" aria-hidden="true" />
 
-      <div className="relative z-10 flex h-full">
-        <section className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden px-6 py-7 sm:px-9">
+      <div className="relative z-10 flex flex-col lg:flex-row min-h-max lg:h-full">
+        <section className="relative flex h-[100dvh] lg:h-full min-w-0 flex-1 flex-col overflow-hidden px-4 py-6 sm:px-9 shrink-0">
           <header className="flex items-start justify-between gap-5">
             <div className="flex items-start gap-4">
               <BrandMark />
               <div>
-                <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.01em] text-[#5A6670]">
+                <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.01em] text-[#5A6670] whitespace-nowrap">
                   Map for Love
                 </h1>
                 <p className="mt-1 text-base font-medium text-[#5A6670]/62">我们的地图</p>
@@ -109,13 +101,15 @@ export default function MapPage() {
 
           <RandomPhotoCard />
 
-          <div className="absolute bottom-7 left-6 flex flex-col gap-4 sm:left-9">
-            <SouthChinaSeaInset />
+          <SouthChinaSeaInset />
+
+          <div className="absolute bottom-6 left-4 z-20 sm:bottom-7 sm:left-9 xl:left-6">
             <Legend />
           </div>
         </section>
         <StatsPanel>{null}</StatsPanel>
       </div>
+      <MobileBottomNav />
     </main>
   );
 }

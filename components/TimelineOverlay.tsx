@@ -36,6 +36,7 @@ export default function TimelineOverlay({
 }: Readonly<TimelineOverlayProps>) {
   const [localMemories, setLocalMemories] = useState<LocalMemoryStore>({});
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [phase, setPhase] = useState<"hidden" | "sequence" | "draw" | "done">("hidden");
   const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -46,10 +47,8 @@ export default function TimelineOverlay({
     };
 
     async function load() {
-      const res = await fetchMemoriesDeduplicated().catch(() => null);
-      if (!res?.ok) return;
-      const data = (await res.json().catch(() => null)) as { memories?: LocalMemoryStore } | null;
-      if (!cancelled && data?.memories) setLocalMemories(data.memories);
+      const memories = await fetchMemoriesDeduplicated().catch(() => ({}));
+      if (!cancelled) setLocalMemories(memories);
     }
 
     window.addEventListener(memoryStoreUpdatedEvent, handleUpdate);
@@ -111,23 +110,32 @@ export default function TimelineOverlay({
 
   useEffect(() => {
     if (!visible || timelinePoints.length < 2) {
+      setPhase("hidden");
+      setActiveIndex(-1);
       return;
     }
 
     let current = 0;
     let cancelled = false;
+    setPhase("sequence");
 
     const timer = window.setTimeout(() => {
       const step = () => {
         if (cancelled) return;
-        current++;
-        if (current <= timelinePoints.length) {
-          setActiveIndex(current - 1);
-          animationRef.current = window.setTimeout(step, 400);
+        
+        if (current < timelinePoints.length) {
+          setActiveIndex(current);
+          current++;
+          animationRef.current = window.setTimeout(step, 1800); // 1.8s per city
+        } else {
+          setPhase("draw");
+          animationRef.current = window.setTimeout(() => {
+            if (!cancelled) setPhase("done");
+          }, timelinePoints.length * 400 + 500); // Wait for line drawing
         }
       };
       step();
-    }, 300);
+    }, 500);
 
     return () => {
       cancelled = true;
@@ -168,23 +176,26 @@ export default function TimelineOverlay({
         strokeWidth="6"
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity="0.15"
+        opacity={phase === "sequence" ? 0 : 0.15}
         filter="url(#timeline-glow)"
+        className="transition-opacity duration-500"
       />
 
       {/* Main animated path */}
-      <motion.path
-        d={pathD}
-        fill="none"
-        stroke="url(#timeline-gradient)"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeDasharray={pathLength}
-        initial={{ strokeDashoffset: pathLength }}
-        animate={{ strokeDashoffset: 0 }}
-        transition={{ duration: timelinePoints.length * 0.4, ease: "easeInOut" }}
-      />
+      {phase !== "sequence" && (
+        <motion.path
+          d={pathD}
+          fill="none"
+          stroke="url(#timeline-gradient)"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray={pathLength}
+          initial={{ strokeDashoffset: pathLength }}
+          animate={{ strokeDashoffset: 0 }}
+          transition={{ duration: timelinePoints.length * 0.4, ease: "easeInOut" }}
+        />
+      )}
 
       {/* City dots and labels */}
       {timelinePoints.map((point, index) => {
@@ -212,38 +223,62 @@ export default function TimelineOverlay({
               cx={point.x}
               cy={point.y}
               r={isCurrent ? 6 : 4}
-              fill={isActive ? "#E8B8C2" : "#D8DDD8"}
+              fill={isActive || phase !== "sequence" ? "#E8B8C2" : "#D8DDD8"}
               stroke="#FAFBF7"
               strokeWidth="2"
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: index * 0.4, duration: 0.3 }}
+              transition={{ duration: 0.3 }}
             />
 
             {/* Photo popup */}
-            {isActive && point.image && (
+            {isCurrent && point.image && phase === "sequence" && (
+              <motion.foreignObject
+                x={point.x - 55}
+                y={point.y - 125}
+                width="110"
+                height="120"
+                initial={{ opacity: 0, y: 20, scale: 0.6, rotate: -15 }}
+                animate={{ opacity: 1, y: 0, scale: 1, rotate: index % 2 === 0 ? -4 : 4 }}
+                exit={{ opacity: 0, scale: 0.8, y: 10 }}
+                transition={{ type: "spring", bounce: 0.5 }}
+                className="overflow-visible pointer-events-none"
+              >
+                <div className="flex h-full w-full flex-col bg-[#FAFBF7] p-2 pb-6 shadow-[0_12px_24px_rgba(90,102,112,0.22)] rounded-[6px] border border-[#D8DDD8]/50">
+                   <div className="relative flex-1 w-full overflow-hidden rounded-[4px] bg-[#D6E8F0]/30">
+                     <img src={point.image} alt={point.cityName} className="absolute inset-0 w-full h-full object-cover" />
+                   </div>
+                </div>
+              </motion.foreignObject>
+            )}
+
+            {/* Final Photo popups (when done) */}
+            {phase === "done" && point.image && (
               <motion.foreignObject
                 x={point.x - 45}
                 y={point.y - 110}
                 width="90"
                 height="100"
-                initial={{ opacity: 0, y: 30, scale: 0.4, rotate: index % 2 === 0 ? -25 : 25 }}
+                initial={{ opacity: 0, y: 20, scale: 0.8, rotate: 0 }}
                 animate={{ opacity: 1, y: 0, scale: 1, rotate: index % 2 === 0 ? -6 : 6 }}
-                transition={{ delay: index * 0.4 + 0.15, type: "spring", bounce: 0.55 }}
+                transition={{ delay: index * 0.15, type: "spring", bounce: 0.55 }}
                 className="overflow-visible pointer-events-none"
               >
-                <div className="flex h-full w-full flex-col bg-[#FAFBF7] p-1.5 pb-5 shadow-[0_12px_24px_rgba(90,102,112,0.22)] rounded-[4px] border border-[#D8DDD8]/50">
-                   <img src={point.image} alt={point.cityName} className="w-full flex-1 rounded-[2px] object-cover bg-[#D6E8F0]/30" />
+                <div className="flex h-full w-full flex-col bg-[#FAFBF7] p-1.5 pb-5 shadow-[0_8px_16px_rgba(90,102,112,0.15)] rounded-[4px] border border-[#D8DDD8]/50">
+                   <div className="relative flex-1 w-full overflow-hidden rounded-[2px] bg-[#D6E8F0]/30">
+                     <img src={point.image} alt={point.cityName} className="absolute inset-0 w-full h-full object-cover" />
+                   </div>
                 </div>
               </motion.foreignObject>
             )}
 
             {/* City label */}
-            {isActive && (
+            {(isCurrent || phase === "done") && (
               <motion.g
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: index * 0.4 + 0.3, duration: 0.3 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
               >
                 <rect
                   x={point.x + 10}
@@ -265,41 +300,36 @@ export default function TimelineOverlay({
                 >
                   {point.cityName}
                 </text>
-                <text
-                  x={point.x + 18 + point.cityName.length * 14 + 4}
-                  y={point.y - 6}
-                  fontSize="10"
-                  fill="#5A6670"
-                  opacity="0.5"
-                >
-                  {point.date}
-                </text>
               </motion.g>
             )}
 
             {/* Number badge */}
-            <motion.circle
-              cx={point.x}
-              cy={point.y - 14}
-              r="8"
-              fill={isActive ? "#E8B8C2" : "#D8DDD8"}
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: index * 0.4, duration: 0.25 }}
-            />
-            <motion.text
-              x={point.x}
-              y={point.y - 10}
-              textAnchor="middle"
-              fontSize="9"
-              fontWeight="700"
-              fill="white"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: index * 0.4, duration: 0.25 }}
-            >
-              {index + 1}
-            </motion.text>
+            {(isActive || phase !== "sequence") && (
+              <motion.circle
+                cx={point.x}
+                cy={point.y - 14}
+                r="8"
+                fill="#E8B8C2"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 0.25 }}
+              />
+            )}
+            {(isActive || phase !== "sequence") && (
+              <motion.text
+                x={point.x}
+                y={point.y - 10}
+                textAnchor="middle"
+                fontSize="9"
+                fontWeight="700"
+                fill="white"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.25 }}
+              >
+                {index + 1}
+              </motion.text>
+            )}
           </g>
         );
       })}

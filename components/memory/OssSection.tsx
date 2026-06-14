@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Cloud, Save } from "lucide-react";
+import { getStoredOssConfig, saveOssConfig, type OssConfig } from "@/lib/client/oss";
+import { getStorageMode } from "@/lib/client/storage";
 
 interface OssSectionProps {
   isAdmin: boolean;
@@ -24,9 +26,27 @@ export function OssSection({
 
   useEffect(() => {
     if (!isAdmin) return;
+
+    if (getStorageMode() === "oss") {
+      getStoredOssConfig().then((localConfig) => {
+        if (localConfig) {
+          setRegion(localConfig.region || "");
+          setAccessKeyId(localConfig.accessKeyId || "");
+          setAccessKeySecret(localConfig.accessKeySecret || "");
+          setBucket(localConfig.bucket || "");
+        }
+        setHasLoaded(true);
+      });
+      return;
+    }
+
+    // Try server-side OSS config (desktop)
     fetch("/api/settings/oss")
-      .then((res) => res.json())
-      .then((data) => {
+      .then((res) => {
+        if (!res.ok) throw new Error("API not available");
+        return res.json();
+      })
+      .then((data: { config?: OssConfig }) => {
         if (data.config) {
           setRegion(data.config.region || "");
           setAccessKeyId(data.config.accessKeyId || "");
@@ -35,49 +55,80 @@ export function OssSection({
         }
         setHasLoaded(true);
       })
-      .catch(() => {
-        setHasLoaded(true);
-      });
+      .catch(() => setHasLoaded(true));
   }, [isAdmin]);
 
   const handleSave = async () => {
     setIsWorking(true);
     setStatus("");
+    const config = { region, accessKeyId, accessKeySecret, bucket };
+
+    if (getStorageMode() === "oss") {
+      await saveOssConfig(config);
+      setIsWorking(false);
+      setStatus("阿里云 OSS 配置已保存，照片将优先上传至云端");
+      return;
+    }
+
+    // Try server-side save (desktop)
+    let ok = false;
     try {
       const response = await fetch("/api/settings/oss", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ region, accessKeyId, accessKeySecret, bucket }),
+        body: JSON.stringify(config),
       });
-      if (!response.ok) throw new Error("Failed to save OSS config");
-      setStatus("阿里云 OSS 配置已保存，照片将优先上传至云端");
+      if (!response.ok) throw new Error("API not available");
+      ok = true;
     } catch {
+      ok = false;
+    }
+    setIsWorking(false);
+    if (ok) {
+      setStatus("阿里云 OSS 配置已保存，照片将优先上传至云端");
+    } else {
       setStatus("保存 OSS 配置失败");
-    } finally {
-      setIsWorking(false);
     }
   };
 
   const handleClear = async () => {
     setIsWorking(true);
     setStatus("");
+
+    if (getStorageMode() === "oss") {
+      await saveOssConfig(null);
+      setRegion("");
+      setAccessKeyId("");
+      setAccessKeySecret("");
+      setBucket("");
+      setStatus("阿里云 OSS 配置已清除，照片将恢复为本地存储");
+      setIsWorking(false);
+      return;
+    }
+
+    // Try server-side clear (desktop)
+    let ok = false;
     try {
       const response = await fetch("/api/settings/oss", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ region: "", accessKeyId: "", accessKeySecret: "", bucket: "" }),
       });
-      if (!response.ok) throw new Error("Failed to clear OSS config");
+      if (!response.ok) throw new Error("API not available");
+      ok = true;
+    } catch {
+      ok = false;
+    }
+    if (ok) {
       setRegion("");
       setAccessKeyId("");
       setAccessKeySecret("");
       setBucket("");
       setStatus("阿里云 OSS 配置已清除，照片将恢复为本地存储");
-    } catch {
+    } else {
       setStatus("清除 OSS 配置失败");
-    } finally {
-      setIsWorking(false);
     }
+    setIsWorking(false);
   };
 
   const isConfigured = Boolean(region && accessKeyId && accessKeySecret && bucket);
@@ -143,13 +194,13 @@ export function OssSection({
       )}
 
       {isAdmin && hasLoaded && (
-        <div className="mt-6 flex items-center justify-between border-t border-[#D8DDD8]/50 pt-5">
+        <div className="mt-6 flex flex-col gap-4 border-t border-[#D8DDD8]/50 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <span className={`text-xs font-semibold ${isConfigured ? 'text-[#A8C8DC]' : 'text-[#5A6670]/50'}`}>
             {isConfigured ? '✅ OSS 参数已填写' : 'ℹ️ 未开启云端存储，使用本地存储'}
           </span>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
-              className="flex items-center gap-2 rounded-[7px] border border-[#D8DDD8] px-4 py-2 text-sm font-semibold text-[#5A6670]/70 transition hover:bg-[#FAFBF7] disabled:opacity-50"
+              className="whitespace-nowrap flex items-center gap-2 rounded-[7px] border border-[#D8DDD8] px-4 py-2 text-sm font-semibold text-[#5A6670]/70 transition hover:bg-[#FAFBF7] disabled:opacity-50"
               type="button"
               onClick={handleClear}
               disabled={isWorking}
@@ -157,7 +208,7 @@ export function OssSection({
               一键清除
             </button>
             <button
-              className="flex items-center gap-2 rounded-[7px] bg-[#5A6670] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5A6670]/80 disabled:opacity-50"
+              className="whitespace-nowrap flex items-center gap-2 rounded-[7px] bg-[#5A6670] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#5A6670]/80 disabled:opacity-50"
               type="button"
               onClick={handleSave}
               disabled={isWorking}
