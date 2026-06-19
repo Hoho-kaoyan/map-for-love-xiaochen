@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Map as MapIcon, Image as ImageIcon, User } from "lucide-react";
+import {
+  Map as MapIcon,
+  Image as ImageIcon,
+  CalendarDays,
+  Archive,
+  User,
+} from "lucide-react";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
@@ -23,6 +29,20 @@ export function MobileBottomNav() {
       isActive: pathname === "/memories",
     },
     {
+      key: "anniversaries",
+      label: "纪念日",
+      icon: CalendarDays,
+      href: "/anniversaries",
+      isActive: pathname === "/anniversaries",
+    },
+    {
+      key: "time-capsule",
+      label: "时光宝盒",
+      icon: Archive,
+      href: "/time-capsule",
+      isActive: pathname === "/time-capsule",
+    },
+    {
       key: "settings",
       label: "我的",
       icon: User,
@@ -32,17 +52,24 @@ export function MobileBottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[100] flex items-center justify-around border-t border-[#D8DDD8]/80 bg-[#FAFBF7]/90 px-4 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-4px_24px_rgba(90,102,112,0.04)] backdrop-blur-md lg:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-[100] grid grid-cols-5 border-t border-[#D8DDD8]/80 bg-[#FAFBF7]/90 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-4px_24px_rgba(90,102,112,0.04)] backdrop-blur-md lg:hidden">
       {navItems.map((item) => (
         <Link
           key={item.key}
           href={item.href}
-          className={`flex flex-col items-center justify-center p-2 transition ${
+          className={`flex min-w-0 flex-col items-center justify-center gap-1 p-1.5 transition ${
             item.isActive ? "text-[#D86F82]" : "text-[#5A6670]/50 hover:text-[#5A6670]/80"
           }`}
         >
-          <item.icon className={`mb-1 h-5 w-5 ${item.isActive ? "fill-current" : ""}`} strokeWidth={item.isActive ? 2.5 : 2} />
-          <span className={`text-[10px] ${item.isActive ? "font-semibold" : "font-medium"}`}>
+          <item.icon
+            className={`h-[18px] w-[18px] ${item.isActive ? "fill-current" : ""}`}
+            strokeWidth={item.isActive ? 2.5 : 2}
+          />
+          <span
+            className={`w-full truncate text-center text-[10px] ${
+              item.isActive ? "font-semibold" : "font-medium"
+            }`}
+          >
             {item.label}
           </span>
         </Link>

@@ -17,7 +17,7 @@ export type LoginPhotoText = {
 
 // Neutral defaults so a fresh copy never shows the original author's personal
 // settings. Each user overrides these from the in-app settings page.
-export const defaultAnniversaryDate = "2025.01.01";
+export const defaultAnniversaryDate = "2025.08.16";
 export const defaultAnniversaryLabel = "我们在一起";
 export const defaultWeatherCityIds = ["beijing", "shanghai", "guangzhou"];
 export const maxWeatherCities = 3;

@@ -86,7 +86,7 @@ export default function MapPage() {
               <BrandMark />
               <div>
                 <h1 className="text-[28px] font-semibold leading-tight tracking-[-0.01em] text-[#5A6670] whitespace-nowrap">
-                  Map for Love
+                  我们的时光地图
                 </h1>
                 <p className="mt-1 text-base font-medium text-[#5A6670]/62">我们的地图</p>
               </div>

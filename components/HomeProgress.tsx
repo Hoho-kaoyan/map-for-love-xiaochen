@@ -13,6 +13,7 @@ import {
 } from "@/data/progress";
 import { useMemories } from "@/hooks/useMemories";
 import { TOTAL_PROVINCES } from "@/data/provinces";
+import { daysTogether } from "@/lib/dateUtils";
 import {
   appSettingsUpdatedEvent,
   defaultAnniversaryDate,
@@ -76,23 +77,6 @@ type OpenMeteoCurrent = {
     weather_code?: number;
     wind_speed_10m?: number;
     is_day?: number;
-  };
-};
-
-const daysTogether = (date?: string) => {
-  if (!date || !/^\d{4}\.\d{2}\.\d{2}$/.test(date)) return null;
-
-  const [year, month, day] = date.split(".").map(Number);
-  const start = new Date(year, month - 1, day);
-  const today = new Date();
-
-  start.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-
-  const diff = Math.floor((today.getTime() - start.getTime()) / 86_400_000);
-  return {
-    days: Math.abs(diff),
-    isFuture: diff < 0
   };
 };
 
@@ -491,7 +475,7 @@ function AlbumProgressCard() {
         <div className="mb-3 flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-[#5A6670]">我们的进度</p>
-            <p className="mt-0.5 text-xs text-[#5A6670]/52">Map for Love</p>
+            <p className="mt-0.5 text-xs text-[#5A6670]/52">我们的时光地图</p>
           </div>
           <Heart className="h-5 w-5 fill-[#F5DCE0] text-[#E8B8C2]" />
         </div>
