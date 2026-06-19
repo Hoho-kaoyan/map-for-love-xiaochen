@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Lock, LockOpen, Pencil, Plus, Trash2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cities } from "@/data/cities";
@@ -14,6 +15,20 @@ import {
   writeItems,
   daysUntil,
 } from "./Shared";
+
+const EMPTY_SPRITE_BY_KIND: Record<ToolConfig["kind"], string> = {
+  favorite: "/sprites/characters/couple-pointing.png",
+  anniversary: "/sprites/characters/couple-sitting.png",
+  trip: "/sprites/characters/couple-standing.png",
+  capsule: "/sprites/characters/couple-sitting.png",
+};
+
+const EMPTY_TEXT_BY_KIND: Record<ToolConfig["kind"], string> = {
+  favorite: "还没收藏任何地点，去地图上看看吧",
+  anniversary: "我们的第一个纪念日从今天开始",
+  trip: "还没去过新城市，第一个目的地是哪里？",
+  capsule: "往时光宝盒里存点什么吧",
+};
 
 type MemoryToolListProps = {
   config: ToolConfig;
@@ -363,10 +378,18 @@ export function MemoryToolList({ config, excludeDate }: MemoryToolListProps) {
           );
         })}
         {items.length === 0 && !isFormOpen && (
-          <div className="col-span-full py-20 text-center text-sm text-[#5A6670]/54">
-            {config.kind === "capsule"
-              ? "还没有时光宝盒，存一个给未来的自己 ✨"
-              : "这里还空着，点击右上方按钮新增一条吧。"}
+          <div className="col-span-full flex flex-col items-center py-20 text-center">
+            <Image
+              src={EMPTY_SPRITE_BY_KIND[config.kind]}
+              width={120}
+              height={120}
+              unoptimized
+              alt=""
+              className="pixelated pointer-events-none select-none"
+            />
+            <p className="mt-4 text-sm text-[#5A6670]/54">
+              {EMPTY_TEXT_BY_KIND[config.kind]}
+            </p>
           </div>
         )}
       </section>

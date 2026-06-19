@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import {
   ChevronRight,
-  Heart,
   ImagePlus,
   MapPin,
   Search,
@@ -339,7 +339,14 @@ export default function MemoryArchive() {
                   {searchQuery ? (
                     <Search className="h-8 w-8 text-[#E8B8C2]" />
                   ) : (
-                    <Heart className="h-8 w-8 fill-[#F5DCE0] text-[#E8B8C2]" />
+                    <Image
+                      src="/sprites/characters/couple-pointing.png"
+                      width={88}
+                      height={88}
+                      unoptimized
+                      alt=""
+                      className="pixelated pointer-events-none select-none"
+                    />
                   )}
                 </div>
                 <h2 className="mt-5 text-2xl font-semibold text-[#5A6670]">

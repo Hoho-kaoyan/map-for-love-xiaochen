@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { CalendarDays, Heart } from "lucide-react";
 import {
   appSettingsUpdatedEvent,
@@ -24,6 +25,14 @@ function AnniversaryHeroCard({ settings }: AnniversaryHeroCardProps) {
   if (!together) {
     return (
       <div className="rounded-[12px] border border-dashed border-[#D8DDD8] bg-[#FAFBF7]/60 px-5 py-6 sm:px-7 sm:py-7">
+        <Image
+          src="/sprites/characters/couple-sitting.png"
+          width={120}
+          height={120}
+          unoptimized
+          alt=""
+          className="pixelated mx-auto mt-1 mb-2 pointer-events-none select-none"
+        />
         <div className="flex items-center gap-3">
           <CalendarDays className="h-7 w-7 fill-[#F5DCE0] text-[#E8B8C2]" />
           <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5A6670]/46">
