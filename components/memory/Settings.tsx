@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import { Settings, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Settings, ShieldCheck, ShieldOff, CalendarDays, Heart } from 'lucide-react';
 import { MemoryPageShell } from '@/components/MemoryNav';
 import { useAdminMode } from '@/hooks/useAdminMode';
 import {
@@ -37,6 +37,44 @@ export default function SettingsPage() {
   const [isWorking, setIsWorking] = useState(false);
 
   const importInputRef = useRef<HTMLInputElement>(null);
+
+  // Anniversary form state. The HTML <input type="date"> uses `YYYY-MM-DD`,
+  // but `appSettings.anniversaryDate` is stored as `YYYY.MM.DD` (project-wide
+  // convention from `data/appSettings.ts`). These two helpers bridge the two.
+  const toInputDate = (value?: string): string => {
+    if (!value) return "";
+    const match = /^(\d{4})\.(\d{1,2})\.(\d{1,2})$/.exec(value);
+    if (!match) return "";
+    const [, y, m, d] = match;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  };
+
+  const fromInputDate = (value: string): string | undefined => {
+    if (!value) return undefined;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if (!match) return undefined;
+    const [, y, m, d] = match;
+    return `${y}.${m}.${d}`;
+  };
+
+  const [anniversaryDateInput, setAnniversaryDateInput] = useState("");
+  const [anniversaryLabelInput, setAnniversaryLabelInput] = useState("");
+
+  useEffect(() => {
+    setAnniversaryDateInput(toInputDate(appSettings.anniversaryDate));
+    setAnniversaryLabelInput(appSettings.anniversaryLabel ?? "");
+  }, [appSettings.anniversaryDate, appSettings.anniversaryLabel]);
+
+  const saveAnniversary = () => {
+    const nextSettings: AppSettings = {
+      ...appSettings,
+      anniversaryDate: fromInputDate(anniversaryDateInput),
+      anniversaryLabel: anniversaryLabelInput.trim() || undefined,
+    };
+    writeAppSettings(nextSettings);
+    setAppSettings(nextSettings);
+    setStatus("纪念日已保存");
+  };
 
   const loadMemoryCount = async () => {
     const memories = await readMemories().catch(() => ({}));
@@ -191,6 +229,58 @@ export default function SettingsPage() {
               </div>
             )}
           </div>
+        </div>
+
+        <div className="rounded-[8px] border border-[#D8DDD8]/78 bg-[#FAFBF7]/76 p-5 shadow-[0_12px_28px_rgba(90,102,112,0.06)] md:col-span-2">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <CalendarDays className="h-6 w-6 fill-[#F5DCE0] text-[#E8B8C2]" />
+              <div>
+                <p className="text-sm font-semibold text-[#5A6670]">纪念日</p>
+                <p className="mt-1 text-xs text-[#5A6670]/52">
+                  设置在一起的日期和称呼，登录页和纪念日 Tab 会同步显示。
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-[180px_1fr_auto] sm:items-end">
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#5A6670]/72">日期</span>
+              <input
+                className="min-h-10 rounded-[7px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/70 px-3 text-sm text-[#5A6670] outline-none transition focus:border-[#A8C8DC] focus:bg-white"
+                value={anniversaryDateInput}
+                onChange={(event) => setAnniversaryDateInput(event.target.value)}
+                type="date"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold text-[#5A6670]/72">称呼</span>
+              <input
+                className="min-h-10 rounded-[7px] border border-[#D8DDD8]/80 bg-[#FAFBF7]/70 px-3 text-sm text-[#5A6670] outline-none transition focus:border-[#A8C8DC] focus:bg-white"
+                value={anniversaryLabelInput}
+                onChange={(event) => setAnniversaryLabelInput(event.target.value)}
+                placeholder="我们在一起"
+                type="text"
+                maxLength={40}
+              />
+            </label>
+            <button
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-[7px] bg-[#E8B8C2] px-4 text-sm font-semibold text-[#FAFBF7] shadow-[0_6px_14px_rgba(232,184,194,0.32)] transition hover:bg-[#D6A6B0]"
+              type="button"
+              onClick={saveAnniversary}
+            >
+              <Heart className="h-4 w-4 fill-white" />
+              保存
+            </button>
+          </div>
+
+          {appSettings.anniversaryDate && (
+            <p className="mt-3 text-xs text-[#5A6670]/52">
+              当前：{appSettings.anniversaryDate}
+              {appSettings.anniversaryLabel ? ` · ${appSettings.anniversaryLabel}` : ""}
+            </p>
+          )}
         </div>
 
         <PasswordSection
