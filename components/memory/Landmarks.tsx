@@ -10,9 +10,11 @@ import { landmarkPhotoMaxDimension, landmarkPhotoQuality, type CityAssetStore } 
 import { LocalPrivacyImg } from "@/components/LocalPrivacyImage";
 import { writeAdminMode } from "@/data/adminMode";
 import { readCityAssets, writeCityAsset, deleteCityAsset } from "@/lib/client/storage";
+import { useToast } from "@/components/shared/ToastProvider";
 
 export default function LandmarksPage() {
   const isAdmin = useAdminMode();
+  const toast = useToast();
   const [cityAssets, setCityAssets] = useState<CityAssetStore>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
@@ -47,7 +49,7 @@ export default function LandmarksPage() {
     const file = event.target.files?.[0];
     const cityId = activeCityIdRef.current;
     if (!isAdmin) {
-      alert("请先进入管理员模式");
+      toast.error("请先进入管理员模式");
       return;
     }
     if (!file || !file.type.startsWith("image/") || !cityId) return;
@@ -62,7 +64,7 @@ export default function LandmarksPage() {
       const assets = await writeCityAsset(cityId, dataUrl);
       setCityAssets(assets);
     } catch {
-      alert("保存地标失败，请重试");
+      toast.error("保存地标失败，请重试");
     } finally {
       setSavingCityId("");
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -71,7 +73,7 @@ export default function LandmarksPage() {
 
   const handleDelete = async (cityId: string) => {
     if (!isAdmin) {
-      alert("请先进入管理员模式");
+      toast.error("请先进入管理员模式");
       return;
     }
     const confirmed = window.confirm("确定要删除这个自定义地标吗？");
@@ -82,7 +84,7 @@ export default function LandmarksPage() {
       const assets = await deleteCityAsset(cityId);
       setCityAssets(assets);
     } catch {
-      alert("删除失败，请重试");
+      toast.error("删除失败，请重试");
     } finally {
       setSavingCityId("");
     }

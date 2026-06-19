@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { ToastProvider } from "@/components/shared/ToastProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,7 +48,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <ServiceWorkerRegistration />
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );
