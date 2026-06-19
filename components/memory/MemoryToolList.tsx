@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { Lock, LockOpen, Pencil, Plus, Trash2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cities } from "@/data/cities";
 import { spring } from "@/components/province/Shared";
@@ -202,7 +202,7 @@ export function MemoryToolList({ config, excludeDate }: MemoryToolListProps) {
                 {config.kind !== "favorite" && (
                   <div>
                     <label className="mb-1.5 block text-sm font-medium text-[#5A6670]/80">
-                      日期
+                      {config.kind === "capsule" ? "解锁日期" : "日期"}
                     </label>
                     <input
                       type="date"
@@ -228,7 +228,9 @@ export function MemoryToolList({ config, excludeDate }: MemoryToolListProps) {
                     placeholder={
                       config.kind === "trip"
                         ? "写一点对这次旅行的期待或计划……"
-                        : "写一点关于这天的回忆……"
+                        : config.kind === "capsule"
+                          ? "藏一句给未来的话……"
+                          : "写一点关于这天的回忆……"
                     }
                     disabled={!isAdmin}
                   />
@@ -263,17 +265,34 @@ export function MemoryToolList({ config, excludeDate }: MemoryToolListProps) {
             (candidate) => candidate.id === item.cityId,
           );
           const leftDays = daysUntil(item.date);
+          const isCapsule = config.kind === "capsule";
+          // Locked = capsule kind AND has a future unlock date. No date set
+          // (null) or past/today (≤0) means the capsule is already open.
+          const isLocked = isCapsule && leftDays !== null && leftDays > 0;
 
           return (
             <article
               key={item.id}
-              className="group relative flex flex-col overflow-hidden rounded-[12px] border border-[#D8DDD8]/70 bg-gradient-to-br from-[#FAFBF7]/80 to-white/60 p-6 shadow-sm transition-all hover:shadow-[0_16px_36px_rgba(90,102,112,0.08)] backdrop-blur"
+              className={`group relative flex flex-col overflow-hidden rounded-[12px] border bg-gradient-to-br p-6 shadow-sm transition-all backdrop-blur ${
+                isLocked
+                  ? "border-[#D8DDD8]/60 from-[#FAFBF7]/40 to-white/30 hover:shadow-[0_12px_28px_rgba(90,102,112,0.06)]"
+                  : "border-[#D8DDD8]/70 from-[#FAFBF7]/80 to-white/60 hover:shadow-[0_16px_36px_rgba(90,102,112,0.08)]"
+              }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
-                  <h2 className="truncate text-lg font-semibold text-[#5A6670]">
-                    {item.title}
-                  </h2>
+                  <div className="flex items-center gap-2">
+                    {isCapsule && (
+                      isLocked ? (
+                        <Lock className="h-4 w-4 shrink-0 text-[#5A6670]/40" />
+                      ) : (
+                        <LockOpen className="h-4 w-4 shrink-0 text-[#A8C8DC]" />
+                      )
+                    )}
+                    <h2 className="truncate text-lg font-semibold text-[#5A6670]">
+                      {item.title}
+                    </h2>
+                  </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                     {city && (
                       <p className="text-sm font-medium text-[#A8C8DC]">
@@ -308,24 +327,46 @@ export function MemoryToolList({ config, excludeDate }: MemoryToolListProps) {
               </div>
 
               {leftDays !== null && (
-                <div className="mt-4 self-start rounded-full bg-[#F5DCE0]/50 px-3 py-1 text-[13px] font-semibold text-[#E8B8C2]">
-                  {leftDays >= 0
-                    ? `还有 ${leftDays} 天`
-                    : `已经过去 ${Math.abs(leftDays)} 天`}
+                <div
+                  className={`mt-4 self-start rounded-full px-3 py-1 text-[13px] font-semibold ${
+                    isLocked
+                      ? "bg-[#5A6670]/8 text-[#5A6670]/56"
+                      : isCapsule
+                        ? "bg-[#A8C8DC]/22 text-[#5A6670]"
+                        : "bg-[#F5DCE0]/50 text-[#E8B8C2]"
+                  }`}
+                >
+                  {isLocked
+                    ? `🔒 还有 ${leftDays} 天解锁`
+                    : isCapsule
+                      ? leftDays < 0
+                        ? `已解锁 · ${Math.abs(leftDays)} 天前`
+                        : "已解锁 · 今天"
+                      : leftDays >= 0
+                        ? `还有 ${leftDays} 天`
+                        : `已经过去 ${Math.abs(leftDays)} 天`}
                 </div>
               )}
 
-              {item.note && (
-                <p className="mt-4 whitespace-pre-wrap border-t border-[#D8DDD8]/40 pt-4 text-sm leading-relaxed text-[#5A6670]/70 flex-1">
-                  {item.note}
-                </p>
+              {isLocked ? (
+                <div className="mt-4 flex-1 rounded-[8px] border border-dashed border-[#D8DDD8]/70 bg-white/30 px-4 py-5 text-center text-sm text-[#5A6670]/46">
+                  这段小秘密，要再等 {leftDays} 天才能打开。
+                </div>
+              ) : (
+                item.note && (
+                  <p className="mt-4 whitespace-pre-wrap border-t border-[#D8DDD8]/40 pt-4 text-sm leading-relaxed text-[#5A6670]/70 flex-1">
+                    {item.note}
+                  </p>
+                )
               )}
             </article>
           );
         })}
         {items.length === 0 && !isFormOpen && (
           <div className="col-span-full py-20 text-center text-sm text-[#5A6670]/54">
-            这里还空着，点击右上方按钮新增一条吧。
+            {config.kind === "capsule"
+              ? "还没有时光宝盒，存一个给未来的自己 ✨"
+              : "这里还空着，点击右上方按钮新增一条吧。"}
           </div>
         )}
       </section>
