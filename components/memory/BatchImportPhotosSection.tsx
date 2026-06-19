@@ -217,7 +217,7 @@ export function BatchImportPhotosSection({
   const currentPhotos = stagedPhotos.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
-    <div className="rounded-[8px] border border-[#D8DDD8]/78 bg-[#FAFBF7]/76 p-5 shadow-[0_12px_28px_rgba(90,102,112,0.06)] md:col-span-2">
+    <div id="batch-import" className="rounded-[8px] border border-[#D8DDD8]/78 bg-[#FAFBF7]/76 p-5 shadow-[0_12px_28px_rgba(90,102,112,0.06)] md:col-span-2 scroll-mt-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-[#5A6670]">批量导入照片与重处理</p>

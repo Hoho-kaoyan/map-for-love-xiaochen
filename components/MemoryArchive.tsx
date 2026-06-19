@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ChevronRight,
   Heart,
+  ImagePlus,
   MapPin,
   Search,
   Star,
@@ -255,7 +256,23 @@ export default function MemoryArchive() {
             </div>
           </header>
 
-          <div className="mt-6 flex flex-col gap-4 border-b border-[#D8DDD8]/50 pb-6">
+          <Link
+            href="/settings#batch-import"
+            className="group mt-6 flex items-center gap-4 rounded-[12px] border border-[#A8C8DC]/40 bg-gradient-to-r from-[#D6E8F0]/52 to-[#FAFBF7]/78 px-5 py-4 shadow-[0_10px_24px_rgba(168,200,220,0.18)] transition hover:border-[#A8C8DC] hover:shadow-[0_14px_32px_rgba(168,200,220,0.28)]"
+          >
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#A8C8DC]/32 text-[#5A6670] transition group-hover:bg-[#A8C8DC]/52">
+              <ImagePlus className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[#5A6670]">批量导入照片</p>
+              <p className="mt-0.5 truncate text-xs text-[#5A6670]/58">
+                从手机里一次选多张，自动提取拍摄时间和所在城市
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 shrink-0 text-[#5A6670]/40 transition group-hover:translate-x-0.5 group-hover:text-[#A8C8DC]" />
+          </Link>
+
+          <div className="sticky top-0 z-20 -mx-4 sm:-mx-10 mt-6 flex flex-col gap-4 border-b border-[#D8DDD8]/50 bg-[#FAFBF7]/85 px-4 sm:px-10 pb-6 pt-2 backdrop-blur supports-[backdrop-filter]:bg-[#FAFBF7]/70">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5A6670]/40" />
               <input
