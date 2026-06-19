@@ -4,6 +4,7 @@ import BackToLoginButton from "@/components/BackToLoginButton";
 import { LegendProgress, ProgressBadge, StatsPanel } from "@/components/HomeProgress";
 import RandomPhotoCard from "@/components/RandomPhotoCard";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { OnboardingOverlay } from "@/components/shared/OnboardingOverlay";
 
 function BrandMark() {
   return (
@@ -110,6 +111,7 @@ export default function MapPage() {
         <StatsPanel>{null}</StatsPanel>
       </div>
       <MobileBottomNav />
+      <OnboardingOverlay />
     </main>
   );
 }
